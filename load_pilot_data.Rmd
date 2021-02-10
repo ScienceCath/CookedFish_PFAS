@@ -1,0 +1,80 @@
+---
+title: "load_pilot_data"
+author: "ML"
+date: "10/02/2021"
+output: html_document
+---
+
+## Project title   
+Add here   
+
+### Project Description   
+Add here   
+
+### Project Setup  
+Load packages, set global code chunk parameters.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("googlesheets4")
+library(googlesheets4)
+
+```
+
+## Load pilot data from GoogleSheet
+
+Pilot data is stored at:
+https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0
+
+
+```{r load pilot data}
+#pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
+pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1, col_types = "ccnccccncccccnnccccccnccncnccncncncccccccccc") #with specifying column types
+dim(pdata)
+names(pdata)
+View(pdata)
+str(pdata)
+```
+
+```{r check pilot data loading}
+
+#some simple desccriptive plots and tables
+hist(pdata$Publication_year)
+hist(pdata$Mc, breaks=20)
+hist(pdata$Me, breaks=20)
+
+table(pdata$PFAS_type)
+table(pdata$PFAS_type)
+
+table(pdata$Species_common)
+table(pdata$Pooled_Nc...31)
+table(pdata$"Se/sd") #570 SD and 40 NA
+
+#checking for missing values
+table(is.na(pdata$Mc)) #2 missing values
+table(is.na(pdata$Me)) #8 missing values
+
+table(is.na(pdata$Sc...27)) #53 missing values
+table(is.na(pdata$Sc...34)) #55 missing values
+
+table(is.na(pdata$Nc)) #248 missing values
+table(is.na(pdata$Ne)) #248 missing values
+
+write.csv(pdata, "pilot_data_preprocessed.csv")
+```
+
+TODO:
+
+ - clean column names
+ - remove PFOS_Total rows
+ - PFAS types by paper with k (number of effect sizes)
+ - species by paper with k (number of effect sizes)
+ - cooking methods by paper with k  (number of effect sizes)
+ - overlaps of these 3 categories?
+ - distribution of N per effect size
+ - make nicer tables with kable package
+ - some of the tables can be presented as figures (e.g. ggplot)
+ - 
+ 
+ 
+ 
