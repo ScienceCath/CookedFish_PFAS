@@ -1,6 +1,7 @@
 ---
 title: "Data_exploration_CookedFish_PFAS"
-output: html_document:
+output: 
+  html_document:
     toc: yes
     toc_float: yes
     theme: united
@@ -21,13 +22,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googlesheets4)
 library(tidyverse)
 library(kableExtra)
+library(here)
 ```
 
 ## Load pilot data from GoogleSheet
 Pilot data is stored at:
 https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0
 
-```{r load pilot data, echo=FALSE}
+```{r load-pilot-data, echo=FALSE, eval=FALSE}
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
 fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccnccccccnncccnccnccncnccncncncccccccccc") #with specifying column types
 dim(fishdata)
@@ -35,9 +37,17 @@ dim(fishdata)
 names(fishdata)
 #View(fishdata)
 str(fishdata)
+
+# saving data
+saveRDS(fishdata,here("data","fishdata.rds"))
 ```
 
-```{r check pilot data loading, echo=FALSE}
+```{r}
+fishdata <- load(here("data","fishdata.rds"))
+```
+
+
+```{r check, echo=FALSE}
 
 #some simple descriptive plots and tables
 hist(fishdata$Publication_year)
@@ -63,16 +73,16 @@ table(is.na(fishdata$Ne)) #248 missing values
 ```
 
 ###Remove PFOS_Total rows
-```{r check pilot data loading, echo=FALSE}
+```{r check2, echo=FALSE}
 
 fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
 
 dim(fishdata_2)
 #602  45
 
-write.csv(fishdata_2, "pilot_data_preprocessed.csv")
+write.csv(fishdata_2, here("data","pilot_data_preprocessed.csv"))
 
-fishdata_2 <- read.csv("pilot_data_preprocessed.csv")
+fishdata_2 <- read.csv( here("data","pilot_data_preprocessed.csv"))
 ```
 ### Moderators {.tabset .tabset-fade .tabset-pills}
 
