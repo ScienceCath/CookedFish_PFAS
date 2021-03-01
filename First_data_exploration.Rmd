@@ -36,11 +36,40 @@ https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9e
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
 fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccncncccccnncccnccnncncnccnnncncncccccccc") #with specifying column types
 dim(fishdata)
-#610  45
+#610  46
 names(fishdata)
 #View(fishdata)
 str(fishdata)
 ```
+###Check content of columns (upper/lower case etc.)
+```{r check pilot data loading, echo=FALSE}
+
+unique(fishdata$Study_ID)
+
+unique(fishdata$Country_firstAuthor)
+
+unique(fishdata$PFAS_type)
+
+unique(fishdata$PFAS_carbon_chain)
+
+unique(fishdata$Cooking_method)
+
+unique(fishdata$Cooking_Category)
+
+unique(fishdata$Oil_type)
+
+unique(fishdata$Unit_PFAS_conc)
+
+unique(fishdata$Sc_technical_biological)
+
+unique(fishdata$Se_technical_biological)
+
+unique(fishdata$Unit_LOD_LOQ)
+
+unique(fishdata$Raw_data_provided)
+
+```
+
 
 ```{r check pilot data loading, echo=FALSE}
 
@@ -67,18 +96,21 @@ table(is.na(fishdata$Nc)) #248 missing values
 table(is.na(fishdata$Ne)) #248 missing values
 ```
 
-###Remove PFOS_Total rows
+###Remove PFOS_Total rows and fishcake
 ```{r check pilot data loading, echo=FALSE}
 
 fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
 
-dim(fishdata_2)
-#602  46
+fishdata_3 <- fishdata_2 %>% filter(!Species_common == 'Fish cake')
 
-write.csv(fishdata_2, "pilot_data_preprocessed.csv")
+dim(fishdata_3)
+#512  46
 
-fishdata_2 <- read.csv("pilot_data_preprocessed.csv")
+write.csv(fishdata_3, "pilot_data_preprocessed.csv", row.names = F)
+
+fishdata_3 <- read.csv("pilot_data_preprocessed.csv")
 ```
+
 ### Moderators {.tabset .tabset-fade .tabset-pills}
 
 #### PFAS type by paper with k (number of effect sizes)
