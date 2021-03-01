@@ -1,28 +1,368 @@
 ---
-title: "First_data_exploration"
-output: html_document
+title: "load_pilot_data"
+author: "ML"
+date: "10/02/2021"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: united
+  pdf_document:
+    toc: yes
 ---
+
+## Project title   
+Add here   
+
+### Project Description   
+Add here   
+
+### Project Setup  
+Load packages, set global code chunk parameters.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages("googlesheets4")
+library(googlesheets4)
+library(tidyverse)
+library(kableExtra)
 ```
 
-## R Markdown
+## Load pilot data from GoogleSheet
+Pilot data is stored at:
+https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r load pilot data, echo=FALSE}
+#pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
+fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccnccccccnncccnccnccncnccncncncccccccccc") #with specifying column types
+dim(fishdata)
+#610  45
+names(fishdata)
+#View(fishdata)
+str(fishdata)
 ```
 
-## Including Plots
+```{r check pilot data loading, echo=FALSE}
 
-You can also embed plots, for example:
+#some simple descriptive plots and tables
+hist(fishdata$Publication_year)
+hist(fishdata$Mc, breaks=20)
+hist(fishdata$Me, breaks=20)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+table(fishdata$PFAS_type)
+table(fishdata$PFAS_type)
+
+table(fishdata$Species_common)
+table(fishdata$Pooled_Nc...31)
+table(fishdata$"Se/sd") #570 SD and 40 NA
+
+#checking for missing values
+table(is.na(fishdata$Mc)) #2 missing values
+table(is.na(fishdata$Me)) #8 missing values
+
+table(is.na(fishdata$Sc...27)) #53 missing values
+table(is.na(fishdata$Sc...34)) #55 missing values
+
+table(is.na(fishdata$Nc)) #248 missing values
+table(is.na(fishdata$Ne)) #248 missing values
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+###Remove PFOS_Total rows
+```{r check pilot data loading, echo=FALSE}
+
+fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
+
+dim(fishdata_2)
+#602  45
+
+write.csv(fishdata_2, "pilot_data_preprocessed.csv")
+
+fishdata_2 <- read.csv("pilot_data_preprocessed.csv")
+```
+### Moderators {.tabset .tabset-fade .tabset-pills}
+
+#### PFAS type by paper with k (number of effect sizes)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$PFAS_type)
+#20
+
+table_PFAS_type <- fishdata_2 %>%
+  group_by(PFAS_type) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_PFAS_type %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+table_PFAS_type %>%
+  pivot_longer(cols = c(n_effect_sizes, n_studies),
+               names_to = 'n_type') %>%
+ggplot() +
+  geom_bar(stat = 'identity',
+           aes(x = PFAS_type,
+               y = value,
+               fill = n_type),
+           position=position_dodge()) +
+  coord_flip()
+```
+
+#### Choice_of_9
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+table_Choice_of_9 <- fishdata_2 %>%
+  group_by(Choice_of_9) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Choice_of_9 %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+```
+
+#### Cooking_method
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+Cooking_methods <- unique(fishdata_2$Cooking_method)
+#9
+
+table_Cooking_method <- fishdata_2 %>%
+  group_by(Cooking_method) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Cooking_method %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+fishdata_2 %>%
+  group_by(Cooking_method) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes)) %>%
+  pivot_longer(cols = c(n_effect_sizes, n_studies),
+               names_to = 'n_type') %>%
+ggplot() +
+  geom_bar(stat = 'identity',
+           aes(x = Cooking_method,
+               y = value,
+               fill = n_type),
+           position=position_dodge())
+```
+
+#### Cooking_Category
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Cooking_Category)
+
+table_Cooking_Category <- fishdata_2 %>%
+  group_by(Cooking_Category) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Cooking_Category %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+fishdata_2 %>%
+  group_by(Cooking_Category) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes)) %>%
+  pivot_longer(cols = c(n_effect_sizes, n_studies),
+               names_to = 'n_type') %>%
+ggplot() +
+  geom_bar(stat = 'identity',
+           aes(x = Cooking_Category,
+               y = value,
+               fill = n_type),
+           position=position_dodge())
+```
+
+#### Species_Scientific
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Species_Scientific)
+#40
+
+table_Species_Scientific <- fishdata_2 %>%
+  group_by(Species_Scientific) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Species_Scientific %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+```
+
+#### Species_common
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Species_common)
+#40
+
+table_Species_common <- fishdata_2 %>%
+  group_by(Species_common) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Species_common %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+```
+
+#### Temperature_in_Celsius
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Temperature_in_Celsius)
+#13
+
+table_Temperature_in_Celsius <- fishdata_2 %>%
+  group_by(Temperature_in_Celsius) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Temperature_in_Celsius_2 <- fishdata_2 %>%
+  group_by(Temperature_in_Celsius) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(Temperature_in_Celsius))
+
+table_Temperature_in_Celsius %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+table_Temperature_in_Celsius_2 %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+```
+#### Length_cooking_time_in_s
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Length_cooking_time_in_s)
+#17
+
+table_Length_cooking_time_in_s <- fishdata_2 %>%
+  group_by(Length_cooking_time_in_s) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Length_cooking_time_in_s %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+```
+
+#### Oil_type
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Oil_type)
+#7
+
+table_Oil_type <- fishdata_2 %>%
+  group_by(Oil_type) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Oil_type %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+fishdata_2 %>%
+  group_by(Oil_type) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes)) %>%
+  pivot_longer(cols = c(n_effect_sizes, n_studies),
+               names_to = 'n_type') %>%
+ggplot() +
+  geom_bar(stat = 'identity',
+           aes(x = Oil_type,
+               y = value,
+               fill = n_type),
+           position=position_dodge())
+
+
+```
+
+#### Volume_liquid_ml
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_2$Volume_liquid_ml)
+
+table_Volume_liquid_ml <- fishdata_2 %>%
+  group_by(Volume_liquid_ml, Oil) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Volume_liquid_ml_2 <- fishdata_2 %>%
+  group_by(Volume_liquid_ml, Oil) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(Volume_liquid_ml))
+
+table_Volume_liquid_ml %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+table_Volume_liquid_ml_2 %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+```
+
+#### Sample sizes
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+fishdata_2 %>%
+  group_by(Nc) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(n_effect_sizes)
+
+# sample size histogram
+ggplot(data = fishdata,
+       aes(x = Nc)) +
+  geom_histogram()
+
+```
+
+#### Pooled_N
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+fishdata_2 %>%
+  group_by(Pooled_Nc) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(n_effect_sizes)
+
+#Diagram doesn't work with characters in column!
+### sample size histogram
+#ggplot(data = fishdata,
+#       aes(x = Pooled_Nc)) +
+#  geom_histogram()
+
+```
+
+#### Overlap of 3 cooking categories?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#Temperature_in_Celsius vs Cooking_Category
+fishdata_2 %>%
+  ggplot(aes(x=Cooking_Category, y=Temperature_in_Celsius))+
+  geom_point()
+  
+  
+#Volume_liquid_ml vs Cooking_Category
+fishdata_2 %>%
+  ggplot(aes(x=Cooking_Category, y=Volume_liquid_ml))+
+  geom_point()
+
+#Length_cooking_time_in_s vs Cooking_Category
+fishdata_2 %>%
+  ggplot(aes(x=Cooking_Category, y=Length_cooking_time_in_s))+
+  geom_point()
+
+###Correlation matrix
+
+#Create new dataframe (with colums Cooking_Category, Temperature_in_Celsius, Volume_liquid_ml & Length_cooking_time_in_s only)
+
+names(fishdata_2)
+
+fishdata_2_fil <- fishdata_2[,c(13, 15,16,20)]
+cor(fishdata_2_fil)
+
+```
