@@ -34,7 +34,7 @@ https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9e
 
 ```{r load pilot data, echo=FALSE}
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
-fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccnccccccnncccnccnccncnccncncncccccccccc") #with specifying column types
+fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccncncccccnncccnccnncncnccnnncncncccccccc") #with specifying column types
 dim(fishdata)
 #610  45
 names(fishdata)
@@ -73,7 +73,7 @@ table(is.na(fishdata$Ne)) #248 missing values
 fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
 
 dim(fishdata_2)
-#602  45
+#602  46
 
 write.csv(fishdata_2, "pilot_data_preprocessed.csv")
 
