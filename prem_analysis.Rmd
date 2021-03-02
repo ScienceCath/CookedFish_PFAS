@@ -15,6 +15,9 @@ When you click the **Knit** button a document will be generated that includes bo
 
 ```{r cars}
 summary(cars)
+
+fishdata_2 <- read.csv("pilot_data_preprocessed.csv")
+
 ```
 
 ## Including Plots
