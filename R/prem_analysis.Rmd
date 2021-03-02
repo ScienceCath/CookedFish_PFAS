@@ -3,29 +3,46 @@ title: "prem_analysis"
 output: html_document
 ---
 
+## Setups
+
+### Loading packages and custom functions
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-## R Markdown
+# packages
+library(tidyverse)
+library(here)
+library(metafor)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# custom functions - here
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-
-fishdata_2 <- read.csv("pilot_data_preprocessed.csv")
 
 ```
 
-## Including Plots
+### Importing data
 
-You can also embed plots, for example:
+```{r data}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+fishdata_2 <- read_csv(here("data", "pilot_data_preprocessed.csv"))
+
+fishdata_2
+
+# creating SD for just biological
+
+fishdata_2 %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), 
+                      SDe = ifelse(Se_technical_biological == "biological", Se, NA)) -> dat
+
+
+dat
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### Getting effect size
+
+```{r}
+
+
+
+```
+
