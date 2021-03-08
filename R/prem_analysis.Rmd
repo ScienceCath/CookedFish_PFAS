@@ -1,0 +1,481 @@
+---
+title: "prem_analysis"
+output: html_document
+---
+
+## Setups
+
+### Loading packages and custom functions
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# packages
+library(tidyverse)
+library(here)
+library(metafor)
+library(metaAidR)
+library(orchaRd)
+# custom functions - here
+# this is to get small sample size corrected lnRR
+# also, the correlated samples - MS should put formulas of what we used and assumptions
+# averaged 
+lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.8){
+  yi<-log( Me / Mc) + 
+    0.5 * ((aCV2e / Ne) - (aCV2c / Nc))	
+  
+  vi <- (aCV2c / Nc)  + (aCV2e / Ne) + rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc+Ne))
+  
+  data.frame(yi,vi)
+}
+
+```
+
+### Importing data
+
+```{r data}
+
+fishdata_2 <- read_csv(here("data", "pilot_data_preprocessed.csv"))
+
+fishdata_2
+
+# creating SD for just biological
+# not quite sure why if_else does not work but ifesle does (handling NA???)
+fishdata_2 %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), 
+                      SDe = ifelse(Se_technical_biological == "biological", Se, NA)) -> dat
+
+#TODO
+# Get Losia to make a phylogenetic tree for this analysis
+
+```
+
+### Getting effect size
+
+```{r}
+# calculate the average CV^2 per study where available
+# then average that again
+dat %>% group_by(Study_ID) %>% summarise(CV2c = mean((SDc/Mc)^2, na.rm = T), CV2e = mean((SDe/Me)^2, na.rm = T)) %>% ungroup() %>% summarise(aCV2c = mean(CV2c, na.rm = T), aCV2e = mean(CV2e, na.rm = T)) -> aCV2
+
+# getting effect size
+effect <- lnRR_func(Mc = dat$Mc, Nc = dat$Nc, Me = dat$Me, Ne = dat$Ne, aCV2c = aCV2[[1]], aCV2e = aCV2[[2]], rho = 0.8)
+
+# effective N
+
+dat %>% mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) -> dat
+
+#  merging
+dat <- cbind(dat, effect)
+
+# getting ride of lnRR = NA
+# data reduced to 520 to 502
+dat %>% filter(is.na(yi) == F) -> rdat # reduced data
+
+#TODO
+#We probably need to covarinace or we can use robust stuff to circumvent this
+
+```
+
+### Some plotting
+
+```{r}
+# mean 
+qplot(yi, data = rdat, geom = "histogram")
+qplot(yi, data = rdat, geom = "density")
+# variance
+qplot(vi, data = rdat, geom = "histogram")
+qplot(vi, data = rdat, geom = "density")
+
+# log variance
+qplot(vi, data = rdat, geom = "histogram", log = "x")
+qplot(vi, data = rdat, geom = "density", log = "x")
+```
+
+### Meta-analysis (random-effects model - wrong)
+
+```{r}
+
+ma1 <- rma(yi, vi, 
+          test = "knha", 
+          data = rdat)
+
+summary(ma1)
+
+funnel(ma1, yaxis = "seinv")
+
+```
+
+### Meta-analysis (mulit)
+
+```{r}
+
+ma2 <- rma.mv(yi, vi,
+             random = list(~1|Study_ID, 
+                           ~1|Cohort_ID,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+
+summary(ma2)
+
+# heterogeneity
+round(i2_ml(ma2)*100,1)
+
+funnel(ma2, yaxis = "seinv")
+
+# reducing 
+
+ma3 <- rma.mv(yi, vi,
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+
+summary(ma3)
+
+anova(ma2,ma3)
+
+```
+
+### Meta-regression
+
+#### Categorical moderator
+
+```{r}
+
+# Cooking_Category
+mr1 <- rma.mv(yi, vi,
+              mod = ~ Cooking_Category - 1,
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr1)
+
+# plot
+orchard_plot(mr1, mod = "Cooking_Category", xlab = "lnRR (effect size)")
+```
+#### Continuous moderator
+
+```{r}
+# PFAS_carbon_chain
+mr2 <- rma.mv(yi, vi,
+              mod = ~ scale(PFAS_carbon_chain),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr2)
+r2_ml(mr2)
+# Temperature_in_Celsius +
+mr3 <- rma.mv(yi, vi,
+              mod = ~ scale(Temperature_in_Celsius),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr3)
+r2_ml(mr3)
+# Length_cooking_time_in_s
+mr4 <- rma.mv(yi, vi,
+              mod = ~  Length_cooking_time_in_s,
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr4)
+r2_ml(mr4)
+#Volume_liquid_ml
+
+mr5 <- rma.mv(yi, vi,
+              mod = ~ scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr5)
+
+r2_ml(mr5)
+
+#Weight_sample_g (should not really matter)
+
+mr6 <- rma.mv(yi, vi,
+              mod = ~ scale(Weight_sample_g),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr6)
+
+r2_ml(mr6)
+
+# putting all together
+
+mr_all <- rma.mv(yi, vi,
+              mod = ~ - 1 + Cooking_Category +
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr_all)
+
+r2_ml(mr_all)
+#orchard_plot(mr_all, mod = "Cooking_Category", xlab = "lnRR (effect size)")
+
+# cooking time 2 SD below
+mr_all_short <- rma.mv(yi, vi,
+              mod = ~ - 1 + Cooking_Category +
+                scale(Temperature_in_Celsius) +
+                I(scale(Length_cooking_time_in_s) + 2) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+
+summary(mr_all_short)
+# cooking time 2 SD above
+
+mr_all_long <- rma.mv(yi, vi,
+              mod = ~ - 1 + Cooking_Category +
+                scale(Temperature_in_Celsius) +
+                I(scale(Length_cooking_time_in_s) - 2) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(mr_all_long)
+
+# splitting datasets by cooking method (but create a new section)
+
+# just oil
+
+mr_oil <- rma.mv(yi, vi,
+              mod = ~ 
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = subset(rdat, Cooking_Category == "oil-based"))
+summary(mr_oil)
+
+# just water
+mr_water <- rma.mv(yi, vi,
+              mod = ~ 
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = subset(rdat, Cooking_Category == "water-based"))
+summary(mr_water)
+
+# others
+mr_no <- rma.mv(yi, vi,
+              mod = ~ 
+                scale(Length_cooking_time_in_s),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = subset(rdat, Cooking_Category == "No liquid"))
+summary(mr_no)
+
+```
+
+#### Conditional estimates
+
+```{r}
+# something strang is happening 
+# some conditional intercept
+# just old first
+
+odat <- subset(rdat, Cooking_Category == "oil-based")
+
+# Length_cooking_time_in_s 
+qplot(Length_cooking_time_in_s, data = odat, geom = "histogram")
+#max(odat$Length_cooking_time_in_s, na.rm = T)
+# Volume_liquid_ml
+qplot(Volume_liquid_ml, data = odat, geom = "histogram")
+qplot(Volume_liquid_ml, data = dat, geom = "histogram")
+qplot(log(Volume_liquid_ml), data = odat, geom = "histogram")
+qplot(log(Volume_liquid_ml), data = dat, geom = "histogram")
+#max(odat$Volume_liquid_ml, na.rm = T)
+
+odat$max_cook_time <- odat$Length_cooking_time_in_s - max(odat$Length_cooking_time_in_s, na.rm = T)
+odat$max_lnvolume <- log(odat$Volume_liquid_ml) - max(odat$Volume_liquid_ml, na.rm = T)
+
+
+mr_oil2 <- rma.mv(yi, vi,
+              mod = ~ scale(Temperature_in_Celsius) +
+               # max_cook_time +
+                #scale(PFAS_carbon_chain) +
+                max_lnvolume,
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = odat)
+summary(mr_oil2)
+
+```
+## Bubble plots
+
+```{r}
+#TODO fix the code
+
+# Length_cooking_time_in_s
+summary(mr4)
+#r2_ml(mr4)
+
+
+pred_cooking_len <-predict.rma(mr4) 
+
+# plotting
+
+fig_cooking_len <-  rdat %>% 
+  filter(!is.na(Length_cooking_time_in_s))  %>% # getting ride of NA values
+  mutate(ymin = pred_cooking_len$ci.lb, 
+         ymax = pred_cooking_len$ci.ub,
+         ymin2 = pred_cooking_len$cr.lb,
+         ymax2 = pred_cooking_len$cr.ub,
+         pred = pred_cooking_len$pred) %>% 
+  ggplot(aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(aes(fill = Cooking_Category), shape = 21) +
+  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
+  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotted", lwd = 0.25, colour ="#D55E00") + 
+  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="dashed", lwd = 0.5, colour ="black") +  
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+fig_cooking_len
+#ggsave(plot = fig_cooking_len, filename = "fig_cooking_len.pdf", height = 2, width = 8)
+
+#Volume_liquid_ml
+
+summary(mr5)
+#r2_ml(mr5)
+# plotting
+pred_volume_liquid <-predict.rma(mr5) 
+
+fig_volume_liq <-  rdat %>% 
+  filter(!is.na(Volume_liquid_ml))  %>% # getting ride of NA values
+  mutate(ymin = pred_volume_liquid$ci.lb, 
+         ymax = pred_volume_liquid$ci.ub,
+         ymin2 = pred_volume_liquid$cr.lb,
+         ymax2 = pred_volume_liquid$cr.ub,
+         pred = pred_volume_liquid$pred) %>% 
+  ggplot(aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
+  geom_point(aes(fill = Cooking_Category), shape = 21) +
+  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
+  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotted", lwd = 0.25, colour ="#D55E00") + 
+  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="dashed", lwd = 0.5, colour ="black") +  
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "ln(the volume of liquid) (in ml)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+fig_volume_liq
+
+```
+
+## Publication bias
+
+```{r}
+
+# funnel
+
+funnel(mr_all, yaxis = "seinv")
+
+# some 
+
+rdat[which(residuals(egger_all) == min(residuals(egger_all))), ]
+
+# Egger regression
+egger_all <- rma.mv(yi, vi,
+              mod = ~ - 1 + Cooking_Category +
+                I(sqrt(1/N_tilde)) + 
+                scale(Publication_year) + 
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(egger_all)
+
+#funnel(egger_all, yaxis = "seinv")
+# little evidence
+egger_n <- rma.mv(yi, vi,
+              mod = ~ I(sqrt(1/N_tilde)) ,  
+             random = list(~1|Study_ID, 
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+          test = "t", 
+          data = rdat)
+summary(egger_n)
+
+```
+
