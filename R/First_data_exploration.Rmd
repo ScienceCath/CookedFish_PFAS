@@ -87,14 +87,26 @@ table(fishdata$Pooled_Nc...31)
 table(fishdata$"Se/sd") #570 SD and 40 NA
 
 #checking for missing values
-table(is.na(fishdata$Mc)) #2 missing values
-table(is.na(fishdata$Me)) #8 missing values
+is.na(fishdata$Mc) #0 missing values
+table(is.na(fishdata$Mc))
 
-table(is.na(fishdata$Sc...27)) #53 missing values
-table(is.na(fishdata$Sc...34)) #55 missing values
+table(is.na(fishdata$Me)) #0 missing values
 
-table(is.na(fishdata$Nc)) #248 missing values
-table(is.na(fishdata$Ne)) #248 missing values
+table(is.na(fishdata$Sc)) #53 missing values --> correct!
+table(is.na(fishdata$Se)) #55 missing values --> correct!
+
+table(is.na(fishdata$Nc)) #0 missing values
+table(is.na(fishdata$Ne)) #0 missing values
+
+table(is.na(fishdata$PFAS_carbon_chain)) #0 missing values
+
+table(is.na(fishdata$Temperature_in_Celsius)) #6 missing values: Kim_2020 didn't provide temperature for grilling
+
+table(is.na(fishdata$Length_cooking_time_in_s)) #56 missing values: Vassiliadou_2015 didn't provide temperature 
+
+is.na(fishdata$Volume_liquid_ml)
+table(is.na(fishdata$Volume_liquid_ml)) #133 missing values: No data for Alves_2017, Barbosa_2018, Hu_2020 (Steaming), etc.
+
 ```
 
 ###Remove PFOS_Total rows and fishcake
