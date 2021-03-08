@@ -41,32 +41,33 @@ names(fishdata)
 #View(fishdata)
 str(fishdata)
 ```
+
 ###Check content of columns (upper/lower case etc.)
 ```{r check pilot data loading, echo=FALSE}
 
-unique(fishdata$Study_ID)
+fishdata_3 %>% distinct(Study_ID)
 
-unique(fishdata$Country_firstAuthor)
+fishdata_3 %>% distinct(Country_firstAuthor)
 
-unique(fishdata$PFAS_type)
+fishdata_3 %>% distinct(PFAS_type)
 
-unique(fishdata$PFAS_carbon_chain)
+fishdata_3 %>% distinct(PFAS_carbon_chain)
 
-unique(fishdata$Cooking_method)
+fishdata_3 %>% distinct(Cooking_method)
 
-unique(fishdata$Cooking_Category)
+fishdata_3 %>% distinct(Cooking_Category)
 
-unique(fishdata$Oil_type)
+fishdata_3 %>% distinct(Oil_type)
 
-unique(fishdata$Unit_PFAS_conc)
+fishdata_3 %>% distinct(Unit_PFAS_conc)
 
-unique(fishdata$Sc_technical_biological)
+fishdata_3 %>% distinct(Sc_technical_biological)
 
-unique(fishdata$Se_technical_biological)
+fishdata_3 %>% distinct(Se_technical_biological)
 
-unique(fishdata$Unit_LOD_LOQ)
+fishdata_3 %>% distinct(Unit_LOD_LOQ)
 
-unique(fishdata$Raw_data_provided)
+fishdata_3 %>% distinct(Raw_data_provided)
 
 ```
 
@@ -116,10 +117,16 @@ fishdata_3 <- read.csv("pilot_data_preprocessed.csv")
 #### PFAS type by paper with k (number of effect sizes)
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$PFAS_type)
+unique(fishdata_3$PFAS_type)
 #20
 
-table_PFAS_type <- fishdata_2 %>%
+fishdata_3 %>% distinct(PFAS_type)
+
+fishdata_3 %>% count(PFAS_type)
+
+fishdata_3 %>% count(PFAS_type,Study_ID) %>% count(Study_ID)
+
+table_PFAS_type <- fishdata_3 %>%
   group_by(PFAS_type) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -143,7 +150,11 @@ ggplot() +
 #### Choice_of_9
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-table_Choice_of_9 <- fishdata_2 %>%
+fishdata_3 %>% distinct(Choice_of_9)
+
+fishdata_3 %>% count(Choice_of_9)
+
+table_Choice_of_9 <- fishdata_3 %>%
   group_by(Choice_of_9) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -156,10 +167,14 @@ table_Choice_of_9 %>%
 #### Cooking_method
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-Cooking_methods <- unique(fishdata_2$Cooking_method)
+Cooking_methods <- unique(fishdata_3$Cooking_method)
 #9
 
-table_Cooking_method <- fishdata_2 %>%
+fishdata_3 %>% distinct(Cooking_method)
+
+fishdata_3 %>% count(Cooking_method)
+
+table_Cooking_method <- fishdata_3 %>%
   group_by(Cooking_method) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -185,9 +200,13 @@ ggplot() +
 #### Cooking_Category
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Cooking_Category)
+unique(fishdata_3$Cooking_Category)
 
-table_Cooking_Category <- fishdata_2 %>%
+fishdata_3 %>% distinct(Cooking_Category)
+
+fishdata_3 %>% count(Cooking_Category)
+
+table_Cooking_Category <- fishdata_3 %>%
   group_by(Cooking_Category) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -213,10 +232,14 @@ ggplot() +
 #### Species_Scientific
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Species_Scientific)
+unique(fishdata_3$Species_Scientific)
 #40
 
-table_Species_Scientific <- fishdata_2 %>%
+fishdata_3 %>% distinct(Species_Scientific)
+
+fishdata_3 %>% count(Species_Scientific)
+
+table_Species_Scientific <- fishdata_3 %>%
   group_by(Species_Scientific) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -230,8 +253,12 @@ table_Species_Scientific %>%
 #### Species_common
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Species_common)
-#40
+unique($Species_common)
+#39
+
+fishdata_3 %>% distinct(Species_common)
+
+fishdata_3 %>% count(Species_common)
 
 table_Species_common <- fishdata_2 %>%
   group_by(Species_common) %>%
@@ -246,15 +273,17 @@ table_Species_common %>%
 #### Temperature_in_Celsius
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Temperature_in_Celsius)
+unique(fishdata_3$Temperature_in_Celsius)
 #13
 
-table_Temperature_in_Celsius <- fishdata_2 %>%
+fishdata_3 %>% distinct(Temperature_in_Celsius)
+
+table_Temperature_in_Celsius <- fishdata_3 %>%
   group_by(Temperature_in_Celsius) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
 
-table_Temperature_in_Celsius_2 <- fishdata_2 %>%
+table_Temperature_in_Celsius_2 <- fishdata_3 %>%
   group_by(Temperature_in_Celsius) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(Temperature_in_Celsius))
@@ -270,10 +299,12 @@ table_Temperature_in_Celsius_2 %>%
 #### Length_cooking_time_in_s
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Length_cooking_time_in_s)
+unique(fishdata_3$Length_cooking_time_in_s)
 #17
 
-table_Length_cooking_time_in_s <- fishdata_2 %>%
+fishdata_3 %>% distinct(Length_cooking_time_in_s)
+
+table_Length_cooking_time_in_s <- fishdata_3 %>%
   group_by(Length_cooking_time_in_s) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -286,10 +317,12 @@ table_Length_cooking_time_in_s %>%
 #### Oil_type
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Oil_type)
+unique(fishdata_3$Oil_type)
 #7
 
-table_Oil_type <- fishdata_2 %>%
+fishdata_3 %>% distinct(Oil_type)
+
+table_Oil_type <- fishdata_3 %>%
   group_by(Oil_type) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
@@ -298,7 +331,7 @@ table_Oil_type %>%
   kbl() %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
 
-fishdata_2 %>%
+fishdata_3 %>%
   group_by(Oil_type) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes)) %>%
@@ -317,14 +350,16 @@ ggplot() +
 #### Volume_liquid_ml
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-unique(fishdata_2$Volume_liquid_ml)
+unique(fishdata_3$Volume_liquid_ml)
 
-table_Volume_liquid_ml <- fishdata_2 %>%
+fishdata_3 %>% distinct(Volume_liquid_ml)
+
+table_Volume_liquid_ml <- fishdata_3 %>%
   group_by(Volume_liquid_ml, Oil) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
 
-table_Volume_liquid_ml_2 <- fishdata_2 %>%
+table_Volume_liquid_ml_2 <- fishdata_3 %>%
   group_by(Volume_liquid_ml, Oil) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(Volume_liquid_ml))
@@ -341,13 +376,15 @@ table_Volume_liquid_ml_2 %>%
 #### Sample sizes
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-fishdata_2 %>%
+fishdata_3 %>% distinct(Nc)
+
+fishdata_3 %>%
   group_by(Nc) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(n_effect_sizes)
 
 # sample size histogram
-ggplot(data = fishdata,
+ggplot(data = fishdata_3,
        aes(x = Nc)) +
   geom_histogram()
 
