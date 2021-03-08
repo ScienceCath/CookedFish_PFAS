@@ -26,6 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googlesheets4)
 library(tidyverse)
 library(kableExtra)
+library(here)
 ```
 
 ## Load pilot data from GoogleSheet
