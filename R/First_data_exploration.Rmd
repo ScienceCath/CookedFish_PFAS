@@ -91,7 +91,6 @@ fishdata_3 %>% distinct(Species_common)
 Species_Scientific <- fishdata_3 %>% distinct(Species_Scientific)
 
 #csv-file for phylogenetic tree
-write.csv(Species_Scientific, here("Species_Scientific", "Species_Scientific.csv"), row.names = F)
 write.csv(Species_Scientific, "Species_Scientific.csv", row.names = F)
 
 ```
