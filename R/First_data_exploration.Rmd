@@ -42,6 +42,22 @@ names(fishdata)
 #View(fishdata)
 str(fishdata)
 ```
+###Remove PFOS_Total rows and fishcake
+```{r check pilot data loading, echo=FALSE}
+
+fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
+
+fishdata_3 <- fishdata_2 %>% filter(!Species_common == 'Fish cake')
+
+dim(fishdata_3)
+#512  46
+
+write.csv(fishdata_3, here("data", "pilot_data_preprocessed.csv"), row.names = F)
+
+fishdata_3 <- read.csv(here("data", "pilot_data_preprocessed.csv"))
+
+```
+
 
 ###Check content of columns (upper/lower case etc.)
 ```{r check pilot data loading, echo=FALSE}
@@ -69,6 +85,14 @@ fishdata_3 %>% distinct(Se_technical_biological)
 fishdata_3 %>% distinct(Unit_LOD_LOQ)
 
 fishdata_3 %>% distinct(Raw_data_provided)
+
+fishdata_3 %>% distinct(Species_common)
+
+Species_Scientific <- fishdata_3 %>% distinct(Species_Scientific)
+
+#csv-file for phylogenetic tree
+write.csv(Species_Scientific, here("Species_Scientific", "Species_Scientific.csv"), row.names = F)
+write.csv(Species_Scientific, "Species_Scientific.csv", row.names = F)
 
 ```
 
@@ -110,21 +134,6 @@ table(is.na(fishdata$Volume_liquid_ml)) #133 missing values: No data for Alves_2
 
 
 
-```
-
-###Remove PFOS_Total rows and fishcake
-```{r check pilot data loading, echo=FALSE}
-
-fishdata_2 <- fishdata %>% filter(!PFAS_type == 'PFOS_Total')
-
-fishdata_3 <- fishdata_2 %>% filter(!Species_common == 'Fish cake')
-
-dim(fishdata_3)
-#512  46
-
-write.csv(fishdata_3, here("data", "pilot_data_preprocessed.csv"), row.names = F)
-
-fishdata_3 <- read.csv(here("data", "pilot_data_preprocessed.csv"))
 ```
 
 ### Moderators {.tabset .tabset-fade .tabset-pills}
