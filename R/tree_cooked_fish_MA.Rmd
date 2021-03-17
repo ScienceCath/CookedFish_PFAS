@@ -1,0 +1,129 @@
+---
+title: "species_tree_cooked_fish_MA"
+author: "ML"
+date: "11/03/2021"
+output: html_document
+---
+
+*NOTE:* Scomber scombrus appears twice but with one or two spaces in between the words! - fix in the original file!
+
+(code not tested for knitting)
+
+```{r setup, cache = F, echo=FALSE, results = FALSE}
+knitr::opts_chunk$set(error = TRUE) #allow some execution errors
+knitr::opts_chunk$set(eval = TRUE, echo = TRUE, warning = FALSE)
+sessionInfo()
+```
+
+```{r prepare, message = FALSE, echo = TRUE, eval = FALSE, warning = FALSE}
+install.packages("tidyverse")
+install.packages("ape")
+install.packages("curl")
+install.packages("fulltext")
+install.packages("treebase")
+install.packages("devtools")
+devtools::install_github("ropensci/rotl", dependencies = TRUE, build_vignette=TRUE)
+install.packages("rotl")
+```
+
+```{r load packages, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE}
+library(tidyverse)
+library(ape, curl)
+library(rotl)
+library(here)
+```
+
+```{r load data, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE}
+#setwd("/Users/itchyshin/Dropbox/Losia-Shinichi/LAB/MA_general/trees_other/Cat_cooked_fish_MA")
+#dat <- read.csv("Species_Scientific.csv")
+dat <- read.csv(here("data", "pilot_data_preprocessed.csv"))
+str(dat)
+myspecies <- as.character(unique(dat$Species_Scientific)) #get list of species
+str_sort(myspecies) #visual check
+length(myspecies) #38 species
+length(unique(myspecies)) #38 unique species names
+```
+
+## Using *rotl* package to retrieve synthetic species tree from Open Tree of Life
+
+Rotl is an R package (https://peerj.com/preprints/1471/) allowing access to synthetic phylogenetic tree available at Open Tree of Life database (https://opentreeoflife.org/).   
+
+```{r rotl find species, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE, }
+taxa <- tnrs_match_names(names = myspecies)
+dim(taxa) #40 specias - all matched
+table(taxa$approximate_match) #2 approximate matches
+taxa[taxa$approximate_match==TRUE, ] ##ctenopharyngodon idell and Mylopharyngodon piceus are two species of carp from China, the other approximation is ok
+```
+
+Get the initial tree.  
+
+```{r rotl species tree, warning = FALSE, results=FALSE}
+tree <- tol_induced_subtree(ott_ids = taxa[["ott_id"]], label_format = "name")  
+plot(tree, cex=.6, label.offset =.1, no.margin = TRUE)
+```
+
+Check matching species and labels.
+
+```{r re-check tree labels}
+taxa2 <- taxa
+tree2 <- tree
+
+#remove comments from taxa3$unique_name and tree3$tip.label
+taxa2$unique_name <- gsub(" \\(.*", "", taxa2$unique_name) #remove comments
+tree2$tip.label <- gsub(" \\(.*", "", tree2$tip.label) #remove comments
+tree2$tip.label <- gsub("_"," ", tree2$tip.label) #get rid of the underscores
+
+#check overlap and differences with taxa list
+intersect(tree2$tip.label, taxa2$unique_name) #39
+setdiff(tree2$tip.label, taxa2$unique_name) #0
+setdiff(taxa2$unique_name, tree2$tip.label) #0
+
+#check overlap and differences with myspecies list
+intersect(myspecies, tree2$tip.label) #35
+setdiff(myspecies, tree2$tip.label) #4
+setdiff(tree2$tip.label, myspecies) #4
+
+tree2$tip.label <- gsub("Mylopharyngodon piceus", "Ctenopharyngodon idell", tree2$tip.label) #replace with the original name
+#tree2$tip.label <- gsub("Salmo trutta", "Salmo trutta L.", tree2$tip.label) #replace with original name - BEST change in the original data file!
+#tree2$tip.label <- gsub("Engraulis encrasicolus", "Engraulis encrasicholus", tree2$tip.label) #replace with original name - BEST change in the original data
+#tree2$tip.label <- gsub("Amblyraja hyperborea", "Raja hyperborea", tree2$tip.label) #replace with original name - BEST change in the original data
+
+#re-check overlap and differences with myspecies list
+intersect(myspecies, tree2$tip.label) #39
+setdiff(myspecies, tree2$tip.label) #0
+setdiff(tree2$tip.label, myspecies) #0
+
+#check if the tree is really binary 
+is.binary.tree(tree2) #TRUE
+# tree_binary$node.label <- NULL #you can delete internal node labels
+# *NOTE:* no branch lengths are included, they can be created later via simulations.   
+```
+
+Save tree
+
+```{r save final tree}
+write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
+
+# *NOTE:* underscores within species names on tree tip labels are added automatically
+# tree <- read.tree(file="plot_cooked_fish_MA.tre") #if you need to read in the tree
+# tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
+# tree$node.label <- NULL #you can delete internal node labels
+```
+
+Plot tree
+
+```{r plot final binary tree, fig.width=10, fig.height=20, echo=TRUE, message=FALSE}
+plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
+
+#or plot to pdf
+pdf("plot_cooked_fish_MA.pdf", width=8, heigh=10)
+plot(tree2, cex=0.6, label.offset =.1, no.margin = TRUE)
+dev.off()
+```
+
+*FINAL NOTE:*
+"Chinemys reevesii" has to be replaced with "Mauremys reevesii" in the original data, as it is a synonym (only "Mauremys reevesii" appears on the tree)
+
+
+
+
