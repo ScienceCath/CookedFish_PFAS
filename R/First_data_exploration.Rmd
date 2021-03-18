@@ -86,7 +86,10 @@ fishdata_3 %>% distinct(Unit_LOD_LOQ)
 
 fishdata_3 %>% distinct(Raw_data_provided)
 
-fishdata_3 %>% distinct(Species_common)
+fishdata_3 %>% distinct(Invertebrate_vertebrate)
+
+fishdata_3 %>% distinct(Moisture_loss_in_percent)
+
 
 Species_Scientific <- fishdata_3 %>% distinct(Species_Scientific)
 
