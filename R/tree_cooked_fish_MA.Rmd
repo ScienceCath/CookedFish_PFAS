@@ -3,6 +3,8 @@ title: "species_tree_cooked_fish_MA"
 author: "ML"
 date: "11/03/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 #Done: *NOTE:* Scomber scombrus appears twice but with one or two spaces in between the words! - fix in the original file!
@@ -119,10 +121,9 @@ plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
 pdf("plot_cooked_fish_MA.pdf", width=8, heigh=10)
 plot(tree2, cex=0.6, label.offset =.1, no.margin = TRUE)
 dev.off()
+
 ```
 
-*FINAL NOTE:*
-"Chinemys reevesii" has to be replaced with "Mauremys reevesii" in the original data, as it is a synonym (only "Mauremys reevesii" appears on the tree)
 
 
 
