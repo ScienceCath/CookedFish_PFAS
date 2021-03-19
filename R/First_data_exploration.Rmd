@@ -90,7 +90,6 @@ fishdata_3 %>% distinct(Invertebrate_vertebrate)
 
 fishdata_3 %>% distinct(Moisture_loss_in_percent)
 
-
 Species_Scientific <- fishdata_3 %>% distinct(Species_Scientific)
 
 #csv-file for phylogenetic tree

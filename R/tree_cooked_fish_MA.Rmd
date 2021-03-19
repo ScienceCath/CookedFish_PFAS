@@ -5,7 +5,7 @@ date: "11/03/2021"
 output: html_document
 ---
 
-*NOTE:* Scomber scombrus appears twice but with one or two spaces in between the words! - fix in the original file!
+#Done: *NOTE:* Scomber scombrus appears twice but with one or two spaces in between the words! - fix in the original file!
 
 (code not tested for knitting)
 
@@ -16,14 +16,14 @@ sessionInfo()
 ```
 
 ```{r prepare, message = FALSE, echo = TRUE, eval = FALSE, warning = FALSE}
-install.packages("tidyverse")
-install.packages("ape")
-install.packages("curl")
-install.packages("fulltext")
-install.packages("treebase")
-install.packages("devtools")
-devtools::install_github("ropensci/rotl", dependencies = TRUE, build_vignette=TRUE)
-install.packages("rotl")
+#install.packages("tidyverse")
+#install.packages("ape")
+#install.packages("curl")
+#install.packages("fulltext")
+#install.packages("treebase")
+#install.packages("devtools")
+#devtools::install_github("ropensci/rotl", dependencies = TRUE, build_vignette=TRUE)
+#install.packages("rotl")
 ```
 
 ```{r load packages, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE}
@@ -50,7 +50,7 @@ Rotl is an R package (https://peerj.com/preprints/1471/) allowing access to synt
 
 ```{r rotl find species, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE, }
 taxa <- tnrs_match_names(names = myspecies)
-dim(taxa) #40 specias - all matched
+dim(taxa) #38 specias - all matched
 table(taxa$approximate_match) #2 approximate matches
 taxa[taxa$approximate_match==TRUE, ] ##ctenopharyngodon idell and Mylopharyngodon piceus are two species of carp from China, the other approximation is ok
 ```
@@ -74,12 +74,12 @@ tree2$tip.label <- gsub(" \\(.*", "", tree2$tip.label) #remove comments
 tree2$tip.label <- gsub("_"," ", tree2$tip.label) #get rid of the underscores
 
 #check overlap and differences with taxa list
-intersect(tree2$tip.label, taxa2$unique_name) #39
+intersect(tree2$tip.label, taxa2$unique_name) #38
 setdiff(tree2$tip.label, taxa2$unique_name) #0
 setdiff(taxa2$unique_name, tree2$tip.label) #0
 
 #check overlap and differences with myspecies list
-intersect(myspecies, tree2$tip.label) #35
+intersect(myspecies, tree2$tip.label) #37
 setdiff(myspecies, tree2$tip.label) #4
 setdiff(tree2$tip.label, myspecies) #4
 
@@ -89,7 +89,7 @@ tree2$tip.label <- gsub("Mylopharyngodon piceus", "Ctenopharyngodon idell", tree
 #tree2$tip.label <- gsub("Amblyraja hyperborea", "Raja hyperborea", tree2$tip.label) #replace with original name - BEST change in the original data
 
 #re-check overlap and differences with myspecies list
-intersect(myspecies, tree2$tip.label) #39
+intersect(myspecies, tree2$tip.label) #38
 setdiff(myspecies, tree2$tip.label) #0
 setdiff(tree2$tip.label, myspecies) #0
 
