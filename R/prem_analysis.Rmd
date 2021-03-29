@@ -16,6 +16,10 @@ library(here)
 library(metafor)
 library(metaAidR)
 library(orchaRd)
+library(ape)
+library(clubSandwich)
+library(metaAidR)
+
 # custom functions - here
 # this is to get small sample size corrected lnRR
 # also, the correlated samples - MS should put formulas of what we used and assumptions
@@ -44,8 +48,21 @@ fishdata_2
 fishdata_2 %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), 
                       SDe = ifelse(Se_technical_biological == "biological", Se, NA)) -> dat
 
-#TODO
-# Get Losia to make a phylogenetic tree for this analysis
+#
+tree <- read.tree(here("data", "plot_cooked_fish_MA.tre"))
+
+# giving a tree branch lengths
+tree <- compute.brlen(tree)
+
+# making into a correlation matrix
+cor_tree <- vcv(tree,corr = T)
+
+#plot(tree)
+
+# adding Phylogeny column
+dat$Phylogeny <- str_replace(dat$Species_Scientific, " ", "_")
+
+colnames(cor_tree) %in% dat$Phylogeny 
 
 ```
 
@@ -68,10 +85,10 @@ dat <- cbind(dat, effect)
 
 # getting ride of lnRR = NA
 # data reduced to 520 to 502
-dat %>% filter(is.na(yi) == F) -> rdat # reduced data
+#dat %>% filter(is.na(yi) == F) -> rdat # reduced data
 
-#TODO
-#We probably need to covarinace or we can use robust stuff to circumvent this
+# we need VCV to account for controlling for shared controls
+VCV_lnRR <- make_VCV_matrix(dat, V = "vi", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5)
 
 ```
 
@@ -79,15 +96,15 @@ dat %>% filter(is.na(yi) == F) -> rdat # reduced data
 
 ```{r}
 # mean 
-qplot(yi, data = rdat, geom = "histogram")
-qplot(yi, data = rdat, geom = "density")
+qplot(yi, data = dat, geom = "histogram")
+qplot(yi, data = dat, geom = "density")
 # variance
-qplot(vi, data = rdat, geom = "histogram")
-qplot(vi, data = rdat, geom = "density")
+qplot(vi, data = dat, geom = "histogram")
+qplot(vi, data = dat, geom = "density")
 
 # log variance
-qplot(vi, data = rdat, geom = "histogram", log = "x")
-qplot(vi, data = rdat, geom = "density", log = "x")
+qplot(vi, data = dat, geom = "histogram", log = "x")
+qplot(vi, data = dat, geom = "density", log = "x")
 ```
 
 ### Meta-analysis (random-effects model - wrong)
@@ -96,7 +113,7 @@ qplot(vi, data = rdat, geom = "density", log = "x")
 
 ma1 <- rma(yi, vi, 
           test = "knha", 
-          data = rdat)
+          data = dat)
 
 summary(ma1)
 
@@ -106,7 +123,7 @@ funnel(ma1, yaxis = "seinv")
 
 ### Meta-analysis (mulit)
 
-```{r}
+```{r, eval=FALSE}
 
 ma2 <- rma.mv(yi, vi,
              random = list(~1|Study_ID, 
@@ -115,14 +132,11 @@ ma2 <- rma.mv(yi, vi,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
           test = "t", 
-          data = rdat)
-
-summary(ma2)
+          data = dat)
 
 # heterogeneity
-round(i2_ml(ma2)*100,1)
-
-funnel(ma2, yaxis = "seinv")
+#round(i2_ml(ma2)*100,1)
+#funnel(ma2, yaxis = "seinv")
 
 # reducing 
 
@@ -132,204 +146,343 @@ ma3 <- rma.mv(yi, vi,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
           test = "t", 
-          data = rdat)
+          data = dat)
 
-summary(ma3)
+#summary(ma3)
+#anova(ma2,ma3)
 
-anova(ma2,ma3)
+# adding phylo and VCV
+
+ma4 <- rma.mv(yi, VCV_lnRR,
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+
+#summary(ma4)
+
+# saving all the models - they take a long time to run so we do not want to run everytime
+
+obj <- list(ma2, ma3, ma4)
+
+save(obj, file = here("Rdata", "mas.RData"))
 
 ```
+
+
+```{r}
+load(here("Rdata", "mas.RData"))
+
+summary(ma2)
+summary(ma3)
+summary(ma4) # smallest AIC
+
+```
+
 
 ### Meta-regression
 
 #### Categorical moderator
 
-```{r}
+```{r, eval=FALSE}
 
 # Cooking_Category
-mr1 <- rma.mv(yi, vi,
+mr1 <- rma.mv(yi, VCV_lnRR,
               mod = ~ Cooking_Category - 1,
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr1)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+#summary(mr1)
 
+```
+```{r}
 # plot
 orchard_plot(mr1, mod = "Cooking_Category", xlab = "lnRR (effect size)")
 ```
+
+
 #### Continuous moderator
 
-```{r}
+```{r , eval=FALSE}
 # PFAS_carbon_chain
-mr2 <- rma.mv(yi, vi,
-              mod = ~ scale(PFAS_carbon_chain),
+mr2 <- rma.mv(yi, VCV_lnRR,
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr2)
-r2_ml(mr2)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+# summary(mr2)
+# r2_ml(mr2)
 # Temperature_in_Celsius +
-mr3 <- rma.mv(yi, vi,
-              mod = ~ scale(Temperature_in_Celsius),
+mr3 <- rma.mv(yi, VCV_lnRR,
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr3)
-r2_ml(mr3)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+# summary(mr3)
+# r2_ml(mr3)
 # Length_cooking_time_in_s
-mr4 <- rma.mv(yi, vi,
+mr4 <- rma.mv(yi, VCV_lnRR,
               mod = ~  Length_cooking_time_in_s,
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr4)
-r2_ml(mr4)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+# summary(mr4)
+# r2_ml(mr4)
 #Volume_liquid_ml
 
-mr5 <- rma.mv(yi, vi,
+mr5 <- rma.mv(yi, VCV_lnRR,
               mod = ~ scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr5)
-
-r2_ml(mr5)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+# summary(mr5)
+# r2_ml(mr5)
 
 #Weight_sample_g (should not really matter)
 
-mr6 <- rma.mv(yi, vi,
-              mod = ~ scale(Weight_sample_g),
+mr6 <- rma.mv(yi, VCV_lnRR,
+              mod = ~ scale(Moisture_loss_in_percent),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
-summary(mr6)
-
-r2_ml(mr6)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+# summary(mr6)
+# r2_ml(mr6)
 
 # putting all together
 
-mr_all <- rma.mv(yi, vi,
+mr_all <- rma.mv(yi, VCV_lnRR,
               mod = ~ - 1 + Cooking_Category +
                 scale(Temperature_in_Celsius) +
                 scale(Length_cooking_time_in_s) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
 summary(mr_all)
-
 r2_ml(mr_all)
 #orchard_plot(mr_all, mod = "Cooking_Category", xlab = "lnRR (effect size)")
 
 # cooking time 2 SD below
-mr_all_short <- rma.mv(yi, vi,
+mr_all_short <- rma.mv(yi, VCV_lnRR,
               mod = ~ - 1 + Cooking_Category +
                 scale(Temperature_in_Celsius) +
                 I(scale(Length_cooking_time_in_s) + 2) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
 
-summary(mr_all_short)
+#summary(mr_all_short)
 # cooking time 2 SD above
 
-mr_all_long <- rma.mv(yi, vi,
+# consdiering missing values etc
+mr_all_long <- rma.mv(yi, VCV_lnRR,
               mod = ~ - 1 + Cooking_Category +
                 scale(Temperature_in_Celsius) +
                 I(scale(Length_cooking_time_in_s) - 2) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+#summary(mr_all_long)
+
+save(mr1, mr2, mr3, mr4, mr5, mr6, mr_all, mr_all_short, mr_all_long, file = here("Rdata", "mrs.RData"))
+
+```
+
+```{r}
+load(here("Rdata", "mrs.RData"))
+
+summary(mr1)
+r2_ml(mr1)
+
+summary(mr2)
+r2_ml(mr2)
+
+summary(mr3)
+r2_ml(mr3)
+
+summary(mr4)
+r2_ml(mr4)
+
+summary(mr5)
+r2_ml(mr5)
+
+summary(mr6)
+r2_ml(mr6)
+
+summary(mr_all)
+r2_ml(mr_all)
+
+summary(mr_all_short)
 summary(mr_all_long)
 
-# splitting datasets by cooking method (but create a new section)
+```
+
+
+#### Continous moderator (subset analysis)
+
+```{r}
+# splitting datasets by cooking method 
+
+# just oil first
+
+odat <- subset(dat, Cooking_Category == "oil-based")
+VCV_lnRR2 <-  make_VCV_matrix(odat, V = "vi", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5)
+
+include <- row.names(cor_tree) %in% odat$Phylogeny
+
+cor_tree2 <- cor_tree[include, include]
+
+dim(odat) # 303 effect sizes
 
 # just oil
 
-mr_oil <- rma.mv(yi, vi,
+mr_oil <- rma.mv(yi, VCV_lnRR2,
               mod = ~ 
                 scale(Temperature_in_Celsius) +
                 scale(Length_cooking_time_in_s) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = subset(rdat, Cooking_Category == "oil-based"))
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
 summary(mr_oil)
 
 # just water
-mr_water <- rma.mv(yi, vi,
+
+wdat <- subset(dat, Cooking_Category == "water-based")
+
+VCV_lnRR3 <-  make_VCV_matrix(wdat, V = "vi", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5)
+
+include <- row.names(cor_tree) %in% wdat$Phylogeny
+
+cor_tree3 <- cor_tree[include, include]
+
+dim(wdat) # 140 effect sizes
+
+mr_water <- rma.mv(yi, VCV_lnRR3,
               mod = ~ 
-                scale(Temperature_in_Celsius) +
+                #scale(Temperature_in_Celsius) + # this is redundunt
                 scale(Length_cooking_time_in_s) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = subset(rdat, Cooking_Category == "water-based"))
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
 summary(mr_water)
 
 # others
-mr_no <- rma.mv(yi, vi,
+# just water
+
+ndat <- subset(dat,  Cooking_Category == "No liquid")
+
+VCV_lnRR4 <-  make_VCV_matrix(ndat, V = "vi", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5)
+
+include <- row.names(cor_tree) %in% ndat$Phylogeny
+
+cor_tree4 <- cor_tree[include, include]
+
+dim(ndat) # 69 effect sizes
+
+# this is from just one study (not very useful but we can check length of cooking still)
+mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not coverge
               mod = ~ 
-                scale(Length_cooking_time_in_s),
-             random = list(~1|Study_ID, 
+                #scale(Temperature_in_Celsius) + # not different from length of cooking
+                scale(Length_cooking_time_in_s), # +
+                #scale(PFAS_carbon_chain),
+             random = list(#~1|Study_ID, # this is from one study
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = subset(rdat, Cooking_Category == "No liquid"))
+             R= list(Phylogeny = cor_tree4),
+             test = "t", 
+             data = ndat)
 summary(mr_no)
+
+save(mr_oil, mr_water, mr_no, file = here("Rdata", "mrs2.RData"))
+
+```
+```{r}
+load(here("Rdata", "mrs.RData"))
+
+summary(mr_oil)
+r2_ml(mr_oil)
+
+summary(mr_water)
+r2_ml(mr_water)
+
+summary(mr_no)
+r2_ml(mr_no)
 
 ```
 
 #### Conditional estimates
 
 ```{r}
-# something strang is happening 
+# something strange is happening between different cooking types 
 # some conditional intercept
-# just old first
-
-odat <- subset(rdat, Cooking_Category == "oil-based")
-
 # Length_cooking_time_in_s 
 qplot(Length_cooking_time_in_s, data = odat, geom = "histogram")
 #max(odat$Length_cooking_time_in_s, na.rm = T)
@@ -343,36 +496,35 @@ qplot(log(Volume_liquid_ml), data = dat, geom = "histogram")
 odat$max_cook_time <- odat$Length_cooking_time_in_s - max(odat$Length_cooking_time_in_s, na.rm = T)
 odat$max_lnvolume <- log(odat$Volume_liquid_ml) - max(odat$Volume_liquid_ml, na.rm = T)
 
-
-mr_oil2 <- rma.mv(yi, vi,
-              mod = ~ scale(Temperature_in_Celsius) +
-               # max_cook_time +
-                #scale(PFAS_carbon_chain) +
+# so a lot of oild and cookign a long time - get rid of pfas nearly completely (the model says)
+mr_oil2 <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+               max_cook_time +
+                scale(PFAS_carbon_chain) +
                 max_lnvolume,
-             random = list(~1|Study_ID, 
+                         random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = odat)
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
 summary(mr_oil2)
 
 ```
-## Bubble plots
+### Bubble plots
 
+#### All data 
 ```{r}
-#TODO fix the code
-
-# Length_cooking_time_in_s
-summary(mr4)
-#r2_ml(mr4)
-
+#TODO fix the code (work on it)
 
 pred_cooking_len <-predict.rma(mr4) 
 
 # plotting
+# probably should write a function
 
-fig_cooking_len <-  rdat %>% 
+fig_cooking_len <-  dat %>% 
   filter(!is.na(Length_cooking_time_in_s))  %>% # getting ride of NA values
   mutate(ymin = pred_cooking_len$ci.lb, 
          ymax = pred_cooking_len$ci.ub,
@@ -407,7 +559,7 @@ summary(mr5)
 # plotting
 pred_volume_liquid <-predict.rma(mr5) 
 
-fig_volume_liq <-  rdat %>% 
+fig_volume_liq <-  dat %>% 
   filter(!is.na(Volume_liquid_ml))  %>% # getting ride of NA values
   mutate(ymin = pred_volume_liquid$ci.lb, 
          ymax = pred_volume_liquid$ci.ub,
@@ -435,8 +587,45 @@ fig_volume_liq <-  rdat %>%
 fig_volume_liq
 
 ```
+```{r}
 
-## Publication bias
+pred_cooking_len <-predict.rma(mr4) 
+
+# plotting
+# probably should write a function
+
+fig_cooking_len <-  dat %>% 
+  filter(!is.na(Length_cooking_time_in_s))  %>% # getting ride of NA values
+  mutate(ymin = pred_cooking_len$ci.lb, 
+         ymax = pred_cooking_len$ci.ub,
+         ymin2 = pred_cooking_len$cr.lb,
+         ymax2 = pred_cooking_len$cr.ub,
+         pred = pred_cooking_len$pred) %>% 
+  ggplot(aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(aes(fill = Cooking_Category), shape = 21) +
+  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
+  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotted", lwd = 0.25, colour ="#D55E00") + 
+  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="dashed", lwd = 0.5, colour ="black") +  
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+fig_cooking_len
+
+
+```
+
+
+### Publication bias
 
 ```{r}
 
@@ -444,12 +633,8 @@ fig_volume_liq
 
 funnel(mr_all, yaxis = "seinv")
 
-# some 
-
-rdat[which(residuals(egger_all) == min(residuals(egger_all))), ]
-
 # Egger regression
-egger_all <- rma.mv(yi, vi,
+egger_all <- rma.mv(yi, VCV_lnRR,
               mod = ~ - 1 + Cooking_Category +
                 I(sqrt(1/N_tilde)) + 
                 scale(Publication_year) + 
@@ -458,24 +643,30 @@ egger_all <- rma.mv(yi, vi,
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
 summary(egger_all)
 
 #funnel(egger_all, yaxis = "seinv")
 # little evidence
-egger_n <- rma.mv(yi, vi,
+egger_n <- rma.mv(yi, VCV_lnRR,
               mod = ~ I(sqrt(1/N_tilde)) ,  
              random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
                            ~1|Species_common,
                            ~1|PFAS_type,
                            ~1|Effect_ID),
-          test = "t", 
-          data = rdat)
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
 summary(egger_n)
+
+save(egger_all, egger_n, file = here("Rdata", "eggers.RData"))
 
 ```
 
