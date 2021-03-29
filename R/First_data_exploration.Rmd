@@ -97,6 +97,252 @@ write.csv(Species_Scientific, "Species_Scientific.csv", row.names = F)
 
 ```
 
+###Check content of individual studies
+```{r check pilot data loading, echo=FALSE}
+
+#Bhavsar_2014
+Bhavsar_2014 <- fishdata_3 %>% filter (Study_ID == "F003")
+
+Bhavsar_2014  %>% distinct(Species_Scientific)
+Bhavsar_2014  %>% distinct(PFAS_type)
+Bhavsar_2014  %>% distinct(Cohort_ID)
+Bhavsar_2014  %>% distinct(Effect_ID)
+Bhavsar_2014  %>% distinct(Cooking_Category)
+Bhavsar_2014  %>% distinct(Cooking_method)
+
+Bhavsar_2014_salmon <- Bhavsar_2014 %>% filter (Species_Scientific == "Oncorhynchus tshawytscha") 
+
+Bhavsar_2014_salmon  %>% distinct(PFAS_type)
+Bhavsar_2014_salmon  %>% distinct(Cohort_ID)
+Bhavsar_2014_salmon  %>% distinct(Effect_ID)
+
+Bhavsar_2014_carp <- Bhavsar_2014 %>% filter (Species_Scientific == "Cyprinus carpio")
+
+Bhavsar_2014_carp  %>% distinct(PFAS_type)
+Bhavsar_2014_carp  %>% distinct(Cohort_ID)
+Bhavsar_2014_carp  %>% distinct(Effect_ID)
+
+
+Bhavsar_2014_Salvelinus <- Bhavsar_2014 %>% filter (Species_Scientific == "Salvelinus namaycush")
+
+Bhavsar_2014_Salvelinus  %>% distinct(Cohort_ID)
+Bhavsar_2014_Salvelinus  %>% distinct(Effect_ID)
+
+Bhavsar_2014_Sander <- Bhavsar_2014 %>% filter (Species_Scientific == "Sander vitreus")
+
+Bhavsar_2014_Sander  %>% distinct(Cohort_ID)
+Bhavsar_2014_Sander  %>% distinct(Effect_ID)
+
+#Barbosa_2018
+Barbosa_2018 <- fishdata_3 %>% filter (Study_ID == "F002")
+
+Barbosa_2018  %>% distinct(Species_Scientific)
+Barbosa_2018  %>% distinct(PFAS_type)
+Barbosa_2018  %>% distinct(Cohort_ID)
+Barbosa_2018  %>% distinct(Effect_ID)
+Barbosa_2018  %>% distinct(Cooking_Category)
+Barbosa_2018  %>% distinct(Cooking_method)
+
+#Alves_2017
+Alves_2017 <- fishdata_3 %>% filter (Study_ID == "F001")
+
+Alves_2017  %>% distinct(Species_Scientific)
+Alves_2017  %>% distinct(PFAS_type)
+Alves_2017  %>% distinct(Cohort_ID)
+Alves_2017  %>% distinct(Effect_ID)
+Alves_2017  %>% distinct(Cooking_Category)
+Alves_2017  %>% distinct(Cooking_method)
+
+#DelGobbo_2008
+DelGobbo_2008 <- fishdata_3 %>% filter (Study_ID == "F005")
+
+DelGobbo_2008  %>% distinct(Species_Scientific)
+DelGobbo_2008  %>% distinct(PFAS_type)
+DelGobbo_2008  %>% distinct(Cohort_ID)
+DelGobbo_2008  %>% distinct(Effect_ID)
+DelGobbo_2008  %>% distinct(Cooking_Category)
+DelGobbo_2008  %>% distinct(Cooking_method)
+
+DelGobbo_2008_Ictalurus <- DelGobbo_2008 %>% filter (Species_Scientific == "Ictalurus punctatus") 
+
+DelGobbo_2008_Ictalurus  %>% distinct(Cohort_ID)
+DelGobbo_2008_Ictalurus  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Epinephelus <- DelGobbo_2008 %>% filter (Species_Scientific == "Epinephelus itajara") 
+DelGobbo_2008_Epinephelus  %>% distinct(Cohort_ID)
+DelGobbo_2008_Epinephelus  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Lophius <- DelGobbo_2008 %>% filter (Species_Scientific == "Lophius americanus") 
+DelGobbo_2008_Lophius  %>% distinct(Cohort_ID)
+DelGobbo_2008_Lophius  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Bathypolypus <- DelGobbo_2008 %>% filter (Species_Scientific == "Bathypolypus arcticus") 
+DelGobbo_2008_Bathypolypus  %>% distinct(Cohort_ID)
+DelGobbo_2008_Bathypolypus  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Lutjanus <- DelGobbo_2008 %>% filter (Species_Scientific == "Lutjanus campechanus") 
+DelGobbo_2008_Lutjanus  %>% distinct(Cohort_ID)
+DelGobbo_2008_Lutjanus  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Diplosoma <- DelGobbo_2008 %>% filter (Species_Scientific == "Diplosoma listerianum") 
+DelGobbo_2008_Diplosoma  %>% distinct(Cohort_ID)
+DelGobbo_2008_Diplosoma  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Amblyraja <- DelGobbo_2008 %>% filter (Species_Scientific == "Amblyraja hyperborea") 
+DelGobbo_2008_Amblyraja  %>% distinct(Cohort_ID)
+DelGobbo_2008_Amblyraja  %>% distinct(Effect_ID)
+
+DelGobbo_2008_Larimichthys <- DelGobbo_2008 %>% filter (Species_Scientific == "Larimichthys polyactis") 
+DelGobbo_2008_Larimichthys  %>% distinct(Cohort_ID)
+DelGobbo_2008_Larimichthys  %>% distinct(Effect_ID)
+
+#Hu_2020
+Hu_2020 <- fishdata_3 %>% filter (Study_ID == "F006")
+
+Hu_2020  %>% distinct(Species_Scientific)
+Hu_2020  %>% distinct(PFAS_type)
+Hu_2020  %>% distinct(Cohort_ID)
+Hu_2020  %>% distinct(Effect_ID)
+Hu_2020  %>% distinct(Cooking_Category)
+Hu_2020  %>% distinct(Cooking_method)
+
+#Kim_2020
+Kim_2020 <- fishdata_3 %>% filter (Study_ID == "F007")
+
+Kim_2020  %>% distinct(Species_Scientific)
+Kim_2020  %>% distinct(PFAS_type)
+Kim_2020  %>% distinct(Cohort_ID)
+Kim_2020  %>% distinct(Effect_ID)
+Kim_2020  %>% distinct(Cooking_Category)
+Kim_2020  %>% distinct(Cooking_method)
+
+#Luo_2019
+Luo_2019 <- fishdata_3 %>% filter (Study_ID == "F008")
+
+Luo_2019  %>% distinct(Species_Scientific)
+Luo_2019  %>% distinct(PFAS_type)
+Luo_2019  %>% distinct(Cohort_ID)
+Luo_2019  %>% distinct(Effect_ID)
+Luo_2019  %>% distinct(Cooking_Category)
+Luo_2019  %>% distinct(Cooking_method)
+
+#Sungur_2019
+Sungur_2019 <- fishdata_3 %>% filter (Study_ID == "F010")
+
+Sungur_2019  %>% distinct(Species_Scientific)
+Sungur_2019  %>% distinct(PFAS_type)
+Sungur_2019  %>% distinct(Cohort_ID)
+Sungur_2019  %>% distinct(Effect_ID)
+Sungur_2019  %>% distinct(Cooking_Category)
+Sungur_2019  %>% distinct(Cooking_method)
+
+Sungur_2019_Pomatomus <- Sungur_2019 %>% filter (Species_Scientific == "Pomatomus saltator")
+Sungur_2019_Pomatomus  %>% distinct(Cohort_ID)
+Sungur_2019_Pomatomus  %>% distinct(Effect_ID)
+
+Sungur_2019_Mullus <- Sungur_2019 %>% filter (Species_Scientific == "Mullus barbatus")
+Sungur_2019_Mullus  %>% distinct(Cohort_ID)
+Sungur_2019_Mullus  %>% distinct(Effect_ID)
+
+Sungur_2019_Salmo <- Sungur_2019 %>% filter (Species_Scientific == "Salmo trutta")
+Sungur_2019_Salmo  %>% distinct(Cohort_ID)
+Sungur_2019_Salmo  %>% distinct(Effect_ID)
+
+Sungur_2019_Pagellus <- Sungur_2019 %>% filter (Species_Scientific == "Pagellus erythrinus")
+Sungur_2019_Pagellus  %>% distinct(Cohort_ID)
+Sungur_2019_Pagellus  %>% distinct(Effect_ID)
+
+Sungur_2019_Mugil <- Sungur_2019 %>% filter (Species_Scientific == "Mugil cephalus")
+Sungur_2019_Mugil  %>% distinct(Cohort_ID)
+Sungur_2019_Mugil  %>% distinct(Effect_ID)
+
+Sungur_2019_Scomber <- Sungur_2019 %>% filter (Species_Scientific == "Scomber scombrus")
+Sungur_2019_Scomber  %>% distinct(Cohort_ID)
+Sungur_2019_Scomber  %>% distinct(Effect_ID)
+
+Sungur_2019_Dicentrarchus <- Sungur_2019 %>% filter (Species_Scientific == "Dicentrarchus labrax")
+Sungur_2019_Dicentrarchus  %>% distinct(Cohort_ID)
+Sungur_2019_Dicentrarchus  %>% distinct(Effect_ID)
+
+Sungur_2019_Scomber <- Sungur_2019 %>% filter (Species_Scientific == "Scomber scombrus")
+Sungur_2019_Scomber  %>% distinct(Cohort_ID)
+Sungur_2019_Scomber  %>% distinct(Effect_ID)
+
+Sungur_2019_Atherina <- Sungur_2019 %>% filter (Species_Scientific == "Atherina hepsetus")
+Sungur_2019_Atherina  %>% distinct(Cohort_ID)
+Sungur_2019_Atherina  %>% distinct(Effect_ID)
+
+#Taylor_2019
+Taylor_2019 <- fishdata_3 %>% filter (Study_ID == "F011")
+
+Taylor_2019  %>% distinct(Species_Scientific)
+Taylor_2019  %>% distinct(PFAS_type)
+Taylor_2019  %>% distinct(Cohort_ID)
+Taylor_2019  %>% distinct(Effect_ID)
+Taylor_2019  %>% distinct(Cooking_Category)
+Taylor_2019  %>% distinct(Cooking_method)
+
+Taylor_2019_Platycephalus <- fishdata_3 %>% filter (Species_Scientific == "Platycephalus fuscus")
+Taylor_2019_Platycephalus  %>% distinct(Cohort_ID)
+Taylor_2019_Platycephalus  %>% distinct(Effect_ID)
+
+Taylor_2019_Portunus <- fishdata_3 %>% filter (Species_Scientific == "Portunus armatus")
+Taylor_2019_Portunus  %>% distinct(Cohort_ID)
+Taylor_2019_Portunus  %>% distinct(Effect_ID)
+
+Taylor_2019_Metapenaeus <- fishdata_3 %>% filter (Species_Scientific == "Metapenaeus macleayi")
+Taylor_2019_Metapenaeus  %>% distinct(Cohort_ID)
+Taylor_2019_Metapenaeus  %>% distinct(Effect_ID)
+
+#Vassiliadou_2015
+Vassiliadou_2015 <- fishdata_3 %>% filter (Study_ID == "F013")
+
+Vassiliadou_2015  %>% distinct(PFAS_type)
+Vassiliadou_2015  %>% distinct(Cohort_ID)
+Vassiliadou_2015  %>% distinct(Effect_ID)
+Vassiliadou_2015  %>% distinct(Cooking_Category)
+Vassiliadou_2015  %>% distinct(Species_Scientific)
+Vassiliadou_2015  %>% distinct(Cooking_method)
+
+Vassiliadou_2015_Engraulis <- Vassiliadou_2015 %>% filter (Species_Scientific == "Engraulis encrasicolus")
+Vassiliadou_2015_Engraulis  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Engraulis  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Boops <- Vassiliadou_2015 %>% filter (Species_Scientific == "Boops boops")
+Vassiliadou_2015_Boops  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Boops  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Merluccius <- Vassiliadou_2015 %>% filter (Species_Scientific == "Merluccius merluccius")
+Vassiliadou_2015_Merluccius  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Merluccius  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Spicara <- Vassiliadou_2015 %>% filter (Species_Scientific == "Spicara smaris")
+Vassiliadou_2015_Spicara  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Spicara  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Atherina <- Vassiliadou_2015 %>% filter (Species_Scientific == "Atherina boyeri")
+Vassiliadou_2015_Atherina  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Atherina  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Sardina <- Vassiliadou_2015 %>% filter (Species_Scientific == "Sardina pilchardus")
+Vassiliadou_2015_Sardina  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Sardina  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Mullus <- Vassiliadou_2015 %>% filter (Species_Scientific == "Mullus barbatus")
+Vassiliadou_2015_Mullus  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Mullus  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Parapenaeus <- Vassiliadou_2015 %>% filter (Species_Scientific == "Parapenaeus longirostris")
+Vassiliadou_2015_Parapenaeus  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Parapenaeus  %>% distinct(Effect_ID)
+
+Vassiliadou_2015_Loligo <- Vassiliadou_2015 %>% filter (Species_Scientific == "Loligo vulgaris")
+Vassiliadou_2015_Loligo  %>% distinct(Cohort_ID)
+Vassiliadou_2015_Loligo  %>% distinct(Effect_ID)
+
+
+
+```
 
 ```{r check pilot data loading, echo=FALSE}
 
