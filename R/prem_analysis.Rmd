@@ -19,6 +19,7 @@ library(orchaRd)
 library(ape)
 library(clubSandwich)
 library(metaAidR)
+library(patchwork)
 
 # custom functions - here
 # this is to get small sample size corrected lnRR
@@ -404,6 +405,45 @@ mr_oil <- rma.mv(yi, VCV_lnRR2,
              data = odat)
 summary(mr_oil)
 
+# for plotting 
+
+mr_oil_length <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+                scale(Length_cooking_time_in_s),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
+
+mr_oil_chain <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+                scale(PFAS_carbon_chain),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
+
+mr_oil_liquid <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
+
+
 # just water
 
 wdat <- subset(dat, Cooking_Category == "water-based")
@@ -418,7 +458,7 @@ dim(wdat) # 140 effect sizes
 
 mr_water <- rma.mv(yi, VCV_lnRR3,
               mod = ~ 
-                #scale(Temperature_in_Celsius) + # this is redundunt
+                #scale(Temperature_in_Celsius) + # this is redundant 
                 scale(Length_cooking_time_in_s) +
                 scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
@@ -432,7 +472,54 @@ mr_water <- rma.mv(yi, VCV_lnRR3,
              data = wdat)
 summary(mr_water)
 
-# others
+# for plotting
+
+
+mr_water <- rma.mv(yi, VCV_lnRR3,
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # this is redundant 
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
+
+mr_water <- rma.mv(yi, VCV_lnRR3,
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # this is redundant 
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
+
+mr_water <- rma.mv(yi, VCV_lnRR3,
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # this is redundant 
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
+
 # just water
 
 ndat <- subset(dat,  Cooking_Category == "No liquid")
@@ -446,7 +533,7 @@ cor_tree4 <- cor_tree[include, include]
 dim(ndat) # 69 effect sizes
 
 # this is from just one study (not very useful but we can check length of cooking still)
-mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not coverge
+mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
               mod = ~ 
                 #scale(Temperature_in_Celsius) + # not different from length of cooking
                 scale(Length_cooking_time_in_s), # +
@@ -461,7 +548,8 @@ mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not coverge
              data = ndat)
 summary(mr_no)
 
-save(mr_oil, mr_water, mr_no, file = here("Rdata", "mrs2.RData"))
+
+save(mr_oil, mr_water, mr_no, mr_oil1, mr_water1, mr_no1, file = here("Rdata", "mrs2.RData"))
 
 ```
 ```{r}
@@ -554,7 +642,7 @@ fig_cooking_len
 
 #Volume_liquid_ml
 
-summary(mr5)
+#summary(mr5)
 #r2_ml(mr5)
 # plotting
 pred_volume_liquid <-predict.rma(mr5) 
@@ -589,20 +677,65 @@ fig_volume_liq
 ```
 ```{r}
 
-pred_cooking_len <-predict.rma(mr4) 
+# cooking length
+
+p1 <- ggplot(odat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "green4", shape = 21) +
+  geom_abline(intercept = mr_oil1$beta[[1]], slope = mr_oil1$beta[[3]], lty =  "dotted") +
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+p1
+
+# PFAS chain length
+
+p2 <- ggplot(odat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "green4", shape = 21) +
+  geom_abline(intercept = mr_oil1$beta[[1]], slope = mr_oil1$beta[[4]], lty =  "dotted") +
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+p2
+
+# liquid volume
+
+ +
+                log(Volume_liquid_ml)
+
+# May not be good below
+# 
+# cooking length
+
+pred_cooking_len2 <-predict.rma(mr_oil) 
 
 # plotting
 # probably should write a function
 
-fig_cooking_len <-  dat %>% 
+fig_cooking_len2 <-  odat %>% filter(!is.na(Length_cooking_time_in_s) & !is.na(Temperature_in_Celsius)) %>%
   filter(!is.na(Length_cooking_time_in_s))  %>% # getting ride of NA values
-  mutate(ymin = pred_cooking_len$ci.lb, 
-         ymax = pred_cooking_len$ci.ub,
-         ymin2 = pred_cooking_len$cr.lb,
-         ymax2 = pred_cooking_len$cr.ub,
-         pred = pred_cooking_len$pred) %>% 
+  mutate(ymin = pred_cooking_len2$ci.lb, 
+         ymax = pred_cooking_len2$ci.ub,
+         ymin2 = pred_cooking_len2$pi.lb,
+         ymax2 = pred_cooking_len2$pi.ub,
+         pred = pred_cooking_len2$pred) %>% 
   ggplot(aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
-  geom_point(aes(fill = Cooking_Category), shape = 21) +
+  geom_point(fill = "green", shape = 21) +
   geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
   geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
   geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
@@ -619,8 +752,36 @@ fig_cooking_len <-  dat %>%
   theme(legend.background = element_blank()) +
   theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
 
-fig_cooking_len
+fig_cooking_len2
 
+# liquid volume
+pred_volume_liquid2 <-predict.rma(mr_oil) 
+
+fig_volume_liq2 <-  odat %>% filter(!is.na(Length_cooking_time_in_s) & !is.na(Temperature_in_Celsius)) %>%
+  mutate(ymin = pred_volume_liquid2$ci.lb, 
+         ymax = pred_volume_liquid2$ci.ub,
+         ymin2 = pred_volume_liquid2$cr.lb,
+         ymax2 = pred_volume_liquid2$cr.ub,
+         pred = pred_volume_liquid2$pred) %>% 
+  ggplot(aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "green", shape = 21) +
+  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
+  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotted", lwd = 0.25, colour ="#D55E00") + 
+  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="dashed", lwd = 0.5, colour ="black") +  
+  #ylim(-1, 2) + xlim(0, 1.5) +
+  labs(x = "ln(the volume of liquid) (in ml)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+fig_volume_liq2
 
 ```
 
