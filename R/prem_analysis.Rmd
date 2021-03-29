@@ -407,7 +407,7 @@ summary(mr_oil)
 
 # for plotting 
 
-mr_oil1 <- rma.mv(yi, VCV_lnRR2,
+mr_oil_length <- rma.mv(yi, VCV_lnRR2,
               mod = ~ 
                 scale(Temperature_in_Celsius) +
                 Length_cooking_time_in_s +
@@ -421,13 +421,28 @@ mr_oil1 <- rma.mv(yi, VCV_lnRR2,
              R= list(Phylogeny = cor_tree2),
              test = "t", 
              data = odat)
-summary(mr_oil1)
 
-mr_oil3 <- rma.mv(yi, VCV_lnRR2,
+
+mr_oil_chain <- rma.mv(yi, VCV_lnRR2,
               mod = ~ 
-                Temperature_in_Celsius +
-                Length_cooking_time_in_s +
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
                 PFAS_carbon_chain +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
+
+mr_oil_liquid <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+                scale(Temperature_in_Celsius) +
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
                 log(Volume_liquid_ml),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
@@ -437,8 +452,6 @@ mr_oil3 <- rma.mv(yi, VCV_lnRR2,
              R= list(Phylogeny = cor_tree2),
              test = "t", 
              data = odat)
-summary(mr_oil3)
-
 
 # just water
 
@@ -466,17 +479,16 @@ mr_water <- rma.mv(yi, VCV_lnRR3,
              R= list(Phylogeny = cor_tree3),
              test = "t", 
              data = wdat)
-summary(mr_water)
+#summary(mr_water)
 
 # for plotting
 
-
-mr_water1 <- rma.mv(yi, VCV_lnRR3,
+mr_water_length <- rma.mv(yi, VCV_lnRR3,
               mod = ~ 
                 #scale(Temperature_in_Celsius) + # this is redundant 
                 Length_cooking_time_in_s +
-                PFAS_carbon_chain +
-                log(Volume_liquid_ml),
+                scale(PFAS_carbon_chain) +
+                scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
                            ~1|Species_common,
@@ -486,8 +498,39 @@ mr_water1 <- rma.mv(yi, VCV_lnRR3,
              test = "t", 
              data = wdat)
 
+mr_water_chain  <- rma.mv(yi, VCV_lnRR3,
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # this is redundant 
+                scale(Length_cooking_time_in_s) +
+                PFAS_carbon_chain +
+                scale(log(Volume_liquid_ml)),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
 
-# just water
+mr_water_liquid <- rma.mv(yi, VCV_lnRR3,
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # this is redundant 
+                scale(Length_cooking_time_in_s) +
+                scale(PFAS_carbon_chain) +
+                log(Volume_liquid_ml),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree3),
+             test = "t", 
+             data = wdat)
+#summary(mr_water)
+
+# others
+# probably not enough studies to be meaningful - actually only ONE study is included here
 
 ndat <- subset(dat,  Cooking_Category == "No liquid")
 
@@ -513,11 +556,11 @@ mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
              R= list(Phylogeny = cor_tree4),
              test = "t", 
              data = ndat)
-summary(mr_no)
+#summary(mr_no)
 
 # for plotting
 
-mr_no1 <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
+mr_no_length <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
               mod = ~ 
                 #scale(Temperature_in_Celsius) + # not different from length of cooking
                 Length_cooking_time_in_s, # +
@@ -530,10 +573,9 @@ mr_no1 <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
              R= list(Phylogeny = cor_tree4),
              test = "t", 
              data = ndat)
-summary(mr_no)
 
 
-save(mr_oil, mr_water, mr_no, mr_oil1, mr_water1, mr_no1, file = here("Rdata", "mrs2.RData"))
+save(mr_oil, mr_water, mr_no, mr_oil_length, mr_oil_chain, mr_oil_liquid, mr_water_length, mr_water_chain, mr_water_liquid, mr_no_length, file = here("Rdata", "mrs2.RData"))
 
 ```
 ```{r}
@@ -661,46 +703,119 @@ fig_volume_liq
 ```
 ```{r}
 
+# OIL
+
 # cooking length
 
 p1 <- ggplot(odat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "green4", shape = 21) +
-  geom_abline(intercept = mr_oil1$beta[[1]], slope = mr_oil1$beta[[3]], lty =  "dotted") +
-  #ylim(-1, 2) + xlim(0, 1.5) +
+  geom_abline(intercept = mr_oil_length$beta[[1]], slope = mr_oil_length$beta[[3]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
   labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
   #guides(fill = "none", colour = "none") +
   # themses
   theme_bw() +
-  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0))  +
   theme(legend.direction="horizontal") +
   #theme(legend.background = element_rect(fill = "white", colour = "black")) +
   theme(legend.background = element_blank()) +
   theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
 
-p1
+#p1
 
 # PFAS chain length
 
 p2 <- ggplot(odat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "green4", shape = 21) +
-  geom_abline(intercept = mr_oil1$beta[[1]], slope = mr_oil1$beta[[4]], lty =  "dotted") +
-  #ylim(-1, 2) + xlim(0, 1.5) +
-  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  geom_abline(intercept = mr_oil_chain$beta[[1]], slope = mr_oil_chain$beta[[4]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
+  labs(x = "No. of carbon chains", y = "lnRR", size = "Precison (1/SE)") +
   #guides(fill = "none", colour = "none") +
   # themses
   theme_bw() +
-  theme(legend.position= c(1, 1), legend.justification = c(1, 1)) +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0))  +
   theme(legend.direction="horizontal") +
   #theme(legend.background = element_rect(fill = "white", colour = "black")) +
   theme(legend.background = element_blank()) +
   theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
 
-p2
+#p2
 
 # liquid volume
 
- +
-                log(Volume_liquid_ml)
+p3 <- ggplot(odat, aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "green4", shape = 21) +
+  geom_abline(intercept = mr_oil_liquid$beta[[1]], slope = mr_oil_liquid$beta[[5]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
+  labs(x = "ln(Liquid volume in ml)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+#p3
+
+p1 / p2 / p3
+
+# Water
+
+# cooking length
+
+p4 <- ggplot(odat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "blue2", shape = 21) +
+  geom_abline(intercept = mr_water_length$beta[[1]], slope = mr_water_length$beta[[2]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
+  labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0))  +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+
+# PFAS chain length
+
+p5 <- ggplot(odat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "blue2", shape = 21) +
+  geom_abline(intercept = mr_water_chain$beta[[1]], slope = mr_water_chain$beta[[3]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
+  labs(x = "No. of carbon chains", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0))  +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+
+# liquid volume
+
+p6 <- ggplot(odat, aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
+  geom_point(fill = "blue2", shape = 21) +
+  geom_abline(intercept = mr_water_liquid$beta[[1]], slope = mr_water_liquid$beta[[4]], lty =  "dotted") +
+  ylim(-5, 3) + #xlim(0, 1.5) +
+  labs(x = "ln(Liquid volume in ml)", y = "lnRR", size = "Precison (1/SE)") +
+  #guides(fill = "none", colour = "none") +
+  # themses
+  theme_bw() +
+  theme(legend.position= c(0, 0), legend.justification = c(0, 0)) +
+  theme(legend.direction="horizontal") +
+  #theme(legend.background = element_rect(fill = "white", colour = "black")) +
+  theme(legend.background = element_blank()) +
+  theme(axis.text.y = element_text(size = 10, colour ="black", hjust = 0.5, angle = 90)) 
+
+
+p4 / p5 / p6
+
 
 # May not be good below
 # 
