@@ -407,32 +407,11 @@ summary(mr_oil)
 
 # for plotting 
 
-mr_oil_length <- rma.mv(yi, VCV_lnRR2,
+mr_oil1 <- rma.mv(yi, VCV_lnRR2,
               mod = ~ 
-                scale(Length_cooking_time_in_s),
-             random = list(~1|Study_ID, 
-                           ~1|Phylogeny,
-                           ~1|Species_common,
-                           ~1|PFAS_type,
-                           ~1|Effect_ID),
-             R= list(Phylogeny = cor_tree2),
-             test = "t", 
-             data = odat)
-
-mr_oil_chain <- rma.mv(yi, VCV_lnRR2,
-              mod = ~ 
-                scale(PFAS_carbon_chain),
-             random = list(~1|Study_ID, 
-                           ~1|Phylogeny,
-                           ~1|Species_common,
-                           ~1|PFAS_type,
-                           ~1|Effect_ID),
-             R= list(Phylogeny = cor_tree2),
-             test = "t", 
-             data = odat)
-
-mr_oil_liquid <- rma.mv(yi, VCV_lnRR2,
-              mod = ~ 
+                scale(Temperature_in_Celsius) +
+                Length_cooking_time_in_s +
+                scale(PFAS_carbon_chain) +
                 scale(log(Volume_liquid_ml)),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
@@ -442,6 +421,23 @@ mr_oil_liquid <- rma.mv(yi, VCV_lnRR2,
              R= list(Phylogeny = cor_tree2),
              test = "t", 
              data = odat)
+summary(mr_oil1)
+
+mr_oil3 <- rma.mv(yi, VCV_lnRR2,
+              mod = ~ 
+                Temperature_in_Celsius +
+                Length_cooking_time_in_s +
+                PFAS_carbon_chain +
+                log(Volume_liquid_ml),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree2),
+             test = "t", 
+             data = odat)
+summary(mr_oil3)
 
 
 # just water
@@ -475,12 +471,12 @@ summary(mr_water)
 # for plotting
 
 
-mr_water <- rma.mv(yi, VCV_lnRR3,
+mr_water1 <- rma.mv(yi, VCV_lnRR3,
               mod = ~ 
                 #scale(Temperature_in_Celsius) + # this is redundant 
-                scale(Length_cooking_time_in_s) +
-                scale(PFAS_carbon_chain) +
-                scale(log(Volume_liquid_ml)),
+                Length_cooking_time_in_s +
+                PFAS_carbon_chain +
+                log(Volume_liquid_ml),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
                            ~1|Species_common,
@@ -490,35 +486,6 @@ mr_water <- rma.mv(yi, VCV_lnRR3,
              test = "t", 
              data = wdat)
 
-mr_water <- rma.mv(yi, VCV_lnRR3,
-              mod = ~ 
-                #scale(Temperature_in_Celsius) + # this is redundant 
-                scale(Length_cooking_time_in_s) +
-                scale(PFAS_carbon_chain) +
-                scale(log(Volume_liquid_ml)),
-             random = list(~1|Study_ID, 
-                           ~1|Phylogeny,
-                           ~1|Species_common,
-                           ~1|PFAS_type,
-                           ~1|Effect_ID),
-             R= list(Phylogeny = cor_tree3),
-             test = "t", 
-             data = wdat)
-
-mr_water <- rma.mv(yi, VCV_lnRR3,
-              mod = ~ 
-                #scale(Temperature_in_Celsius) + # this is redundant 
-                scale(Length_cooking_time_in_s) +
-                scale(PFAS_carbon_chain) +
-                scale(log(Volume_liquid_ml)),
-             random = list(~1|Study_ID, 
-                           ~1|Phylogeny,
-                           ~1|Species_common,
-                           ~1|PFAS_type,
-                           ~1|Effect_ID),
-             R= list(Phylogeny = cor_tree3),
-             test = "t", 
-             data = wdat)
 
 # just water
 
@@ -537,6 +504,23 @@ mr_no <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
               mod = ~ 
                 #scale(Temperature_in_Celsius) + # not different from length of cooking
                 scale(Length_cooking_time_in_s), # +
+                #scale(PFAS_carbon_chain),
+             random = list(#~1|Study_ID, # this is from one study
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree4),
+             test = "t", 
+             data = ndat)
+summary(mr_no)
+
+# for plotting
+
+mr_no1 <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
+              mod = ~ 
+                #scale(Temperature_in_Celsius) + # not different from length of cooking
+                Length_cooking_time_in_s, # +
                 #scale(PFAS_carbon_chain),
              random = list(#~1|Study_ID, # this is from one study
                            ~1|Phylogeny,
