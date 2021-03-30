@@ -182,6 +182,8 @@ summary(ma2)
 summary(ma3)
 summary(ma4) # smallest AIC
 
+i2_ml(ma2)
+
 ```
 
 
@@ -203,6 +205,7 @@ mr1 <- rma.mv(yi, VCV_lnRR,
              test = "t", 
              data = dat)
 #summary(mr1)
+r2_ml(mr1)
 
 ```
 ```{r}
@@ -579,7 +582,7 @@ save(mr_oil, mr_water, mr_no, mr_oil_length, mr_oil_chain, mr_oil_liquid, mr_wat
 
 ```
 ```{r}
-load(here("Rdata", "mrs.RData"))
+load(here("Rdata", "mrs2.RData"))
 
 summary(mr_oil)
 r2_ml(mr_oil)
@@ -765,10 +768,10 @@ p1 / p2 / p3
 
 # cooking length
 
-p4 <- ggplot(odat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
+p4 <- ggplot(wdat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "blue2", shape = 21) +
   geom_abline(intercept = mr_water_length$beta[[1]], slope = mr_water_length$beta[[2]], lty =  "dotted") +
-  ylim(-5, 3) + #xlim(0, 1.5) +
+  ylim(-7, 3) + #xlim(0, 1.5) +
   labs(x = "Cooking length (in sec)", y = "lnRR", size = "Precison (1/SE)") +
   #guides(fill = "none", colour = "none") +
   # themses
@@ -782,10 +785,10 @@ p4 <- ggplot(odat, aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi))
 
 # PFAS chain length
 
-p5 <- ggplot(odat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
+p5 <- ggplot(wdat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "blue2", shape = 21) +
   geom_abline(intercept = mr_water_chain$beta[[1]], slope = mr_water_chain$beta[[3]], lty =  "dotted") +
-  ylim(-5, 3) + #xlim(0, 1.5) +
+  ylim(-7, 3) + #xlim(0, 1.5) +
   labs(x = "No. of carbon chains", y = "lnRR", size = "Precison (1/SE)") +
   #guides(fill = "none", colour = "none") +
   # themses
@@ -799,10 +802,10 @@ p5 <- ggplot(odat, aes(x = PFAS_carbon_chain, y = yi, size = (1/sqrt(vi)))) +
 
 # liquid volume
 
-p6 <- ggplot(odat, aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
+p6 <- ggplot(wdat, aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "blue2", shape = 21) +
   geom_abline(intercept = mr_water_liquid$beta[[1]], slope = mr_water_liquid$beta[[4]], lty =  "dotted") +
-  ylim(-5, 3) + #xlim(0, 1.5) +
+  ylim(-7, 3) + #xlim(0, 1.5) +
   labs(x = "ln(Liquid volume in ml)", y = "lnRR", size = "Precison (1/SE)") +
   #guides(fill = "none", colour = "none") +
   # themses
