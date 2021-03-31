@@ -84,7 +84,7 @@ dat %>% mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) -> dat
 #  merging
 dat <- cbind(dat, effect)
 
-# getting ride of lnRR = NA
+# getting rid of lnRR = NA
 # data reduced to 520 to 502
 #dat %>% filter(is.na(yi) == F) -> rdat # reduced data
 
@@ -122,7 +122,7 @@ funnel(ma1, yaxis = "seinv")
 
 ```
 
-### Meta-analysis (mulit)
+### Meta-analysis (muliti)
 
 ```{r, eval=FALSE}
 
