@@ -545,8 +545,6 @@ table_Invertebrate_vertebrate %>%
 
 ```
 
-
-
 #### Species_common
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -690,7 +688,7 @@ ggplot(data = fishdata_3,
 #### Pooled_N
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-fishdata_2 %>%
+fishdata_3 %>%
   group_by(Pooled_Nc) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(n_effect_sizes)
