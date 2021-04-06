@@ -1,14 +1,33 @@
 ---
 title: "prem_analysis"
-output: html_document
+author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Matthew Gibson, Daniel Hesselson, G. Gregory Neely, Malgorzata Lagisz, Shinichi Nakagawa "
+date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
+output: rmdformats::material
+
 ---
+# Setups
 
-## Setups
+```{r setup, include = FALSE}
+# knitr setting
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE, 
+  tidy = TRUE,
+  cache = TRUE, 
+  echo=TRUE
+)
+```
 
-### Loading packages and custom functions
+## Loading packages and custom functions
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+* Mc: Concentration of PFAS of the raw (control) sample
+* Nc: Sample size of the raw (control) sample
+* Me: Concentration of PFAS of the cooked (experimental) sample
+* Ne: Sample size of the cooked (experimental) sample 
+* aCV2c: Mean coefficient of variation of the raw (control) samples
+* aCV2e: Mean coefficient of variation of the cooked (experimental) samples
+
+```{r}
 
 # packages
 library(tidyverse)
@@ -36,7 +55,7 @@ lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.8){
 
 ```
 
-### Importing data
+## Importing data
 
 ```{r data}
 
@@ -67,7 +86,7 @@ colnames(cor_tree) %in% dat$Phylogeny
 
 ```
 
-### Getting effect size
+## Getting effect size
 
 ```{r}
 # calculate the average CV^2 per study where available
@@ -93,7 +112,7 @@ VCV_lnRR <- make_VCV_matrix(dat, V = "vi", cluster = "Cohort_ID", obs = "Effect_
 
 ```
 
-### Some plotting
+## Some plotting
 
 ```{r}
 # mean 
@@ -108,7 +127,9 @@ qplot(vi, data = dat, geom = "histogram", log = "x")
 qplot(vi, data = dat, geom = "density", log = "x")
 ```
 
-### Meta-analysis (random-effects model - wrong)
+# Meta-analysis
+
+## Meta-analysis (random-effects model - wrong)
 
 ```{r}
 
@@ -122,7 +143,7 @@ funnel(ma1, yaxis = "seinv")
 
 ```
 
-### Meta-analysis (muliti)
+## Meta-analysis (multi)
 
 ```{r, eval=FALSE}
 
@@ -170,7 +191,7 @@ ma4 <- rma.mv(yi, VCV_lnRR,
 
 obj <- list(ma2, ma3, ma4)
 
-save(obj, file = here("Rdata", "mas.RData"))
+save(ma2, ma3, ma4, file = here("Rdata", "mas.RData"))
 
 ```
 
@@ -187,9 +208,9 @@ i2_ml(ma2)
 ```
 
 
-### Meta-regression
+# Meta-regressions
 
-#### Categorical moderator
+## Categorical moderators
 
 ```{r, eval=FALSE}
 
@@ -208,17 +229,14 @@ mr1 <- rma.mv(yi, VCV_lnRR,
 r2_ml(mr1)
 
 ```
-```{r}
-# plot
-orchard_plot(mr1, mod = "Cooking_Category", xlab = "lnRR (effect size)")
-```
 
 
-#### Continuous moderator
+## Continuous moderators
 
 ```{r , eval=FALSE}
 # PFAS_carbon_chain
 mr2 <- rma.mv(yi, VCV_lnRR,
+             mod = ~ scale(PFAS_carbon_chain),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
                            ~1|Species_common,
@@ -231,6 +249,7 @@ mr2 <- rma.mv(yi, VCV_lnRR,
 # r2_ml(mr2)
 # Temperature_in_Celsius +
 mr3 <- rma.mv(yi, VCV_lnRR,
+             mod = ~ scale(Temperature_in_Celsius),
              random = list(~1|Study_ID, 
                            ~1|Phylogeny,
                            ~1|Species_common,
@@ -344,6 +363,7 @@ save(mr1, mr2, mr3, mr4, mr5, mr6, mr_all, mr_all_short, mr_all_long, file = her
 
 ```
 
+
 ```{r}
 load(here("Rdata", "mrs.RData"))
 
@@ -371,10 +391,14 @@ r2_ml(mr_all)
 summary(mr_all_short)
 summary(mr_all_long)
 
+
+# plot
+orchard_plot(mr1, mod = "Cooking_Category", xlab = "lnRR (effect size)")
 ```
 
 
-#### Continous moderator (subset analysis)
+
+## Continous moderator (subset analyses)
 
 ```{r}
 # splitting datasets by cooking method 
@@ -581,6 +605,8 @@ mr_no_length <- rma.mv(yi, vi, # VCV_lnRR4 does not converge
 save(mr_oil, mr_water, mr_no, mr_oil_length, mr_oil_chain, mr_oil_liquid, mr_water_length, mr_water_chain, mr_water_liquid, mr_no_length, file = here("Rdata", "mrs2.RData"))
 
 ```
+
+
 ```{r}
 load(here("Rdata", "mrs2.RData"))
 
@@ -595,7 +621,7 @@ r2_ml(mr_no)
 
 ```
 
-#### Conditional estimates
+## Conditional estimates
 
 ```{r}
 # something strange is happening between different cooking types 
@@ -630,9 +656,10 @@ mr_oil2 <- rma.mv(yi, VCV_lnRR2,
 summary(mr_oil2)
 
 ```
-### Bubble plots
 
-#### All data 
+# Bubble plots
+
+## All data 
 ```{r}
 #TODO fix the code (work on it)
 
@@ -704,6 +731,9 @@ fig_volume_liq <-  dat %>%
 fig_volume_liq
 
 ```
+
+## Oil
+
 ```{r}
 
 # OIL
@@ -764,6 +794,11 @@ p3 <- ggplot(odat, aes(x = log(Volume_liquid_ml), y = yi, size = (1/sqrt(vi)))) 
 
 p1 / p2 / p3
 
+```
+
+## Water 
+
+```{r}
 # Water
 
 # cooking length
@@ -833,8 +868,8 @@ fig_cooking_len2 <-  odat %>% filter(!is.na(Length_cooking_time_in_s) & !is.na(T
   filter(!is.na(Length_cooking_time_in_s))  %>% # getting ride of NA values
   mutate(ymin = pred_cooking_len2$ci.lb, 
          ymax = pred_cooking_len2$ci.ub,
-         ymin2 = pred_cooking_len2$pi.lb,
-         ymax2 = pred_cooking_len2$pi.ub,
+         ymin2 = pred_cooking_len2$cr.lb,
+         ymax2 = pred_cooking_len2$cr.ub,
          pred = pred_cooking_len2$pred) %>% 
   ggplot(aes(x = Length_cooking_time_in_s, y = yi, size = (1/sqrt(vi)))) +
   geom_point(fill = "green", shape = 21) +
@@ -888,7 +923,7 @@ fig_volume_liq2
 ```
 
 
-### Publication bias
+# Publication bias
 
 ```{r}
 
