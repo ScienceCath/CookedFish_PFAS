@@ -16,6 +16,9 @@ knitr::opts_chunk$set(
   cache = TRUE, 
   echo=TRUE
 )
+
+# this needs to be installed from github
+#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "")
 ```
 
 ## Loading packages and custom functions
@@ -39,6 +42,7 @@ library(ape)
 library(clubSandwich)
 library(metaAidR)
 library(patchwork)
+library(emmeans)
 
 # custom functions - here
 # this is to get small sample size corrected lnRR
@@ -396,6 +400,86 @@ summary(mr_all_long)
 orchard_plot(mr1, mod = "Cooking_Category", xlab = "lnRR (effect size)")
 ```
 
+## Conditional analyses of the full model
+
+```{r}
+# this is our full model
+mod_full <- rma.mv(yi, VCV_lnRR,
+              mod = ~ Cooking_Category +
+                Temperature_in_Celsius +
+                Length_cooking_time_in_s +
+                PFAS_carbon_chain +
+                log(Volume_liquid_ml),
+             random = list(~1|Study_ID, 
+                           ~1|Phylogeny,
+                           ~1|Species_common,
+                           ~1|PFAS_type,
+                           ~1|Effect_ID),
+             R= list(Phylogeny = cor_tree),
+             test = "t", 
+             data = dat)
+
+
+summary(mod_full)
+
+# just at means of all continiosu variables (if we do not set anything)
+res1 <- qdrg(object = mod_full, data = dat)
+
+# marginal means ; all groups are proportionally weighted
+emmeans(res1, specs = ~1, df = mod_full$dfs, weights = "prop") 
+
+# notice now - the results are significant - nearly 80% decline in PFAS content!!
+# 1       emmean   SE  df lower.CL upper.CL
+# overall  -1.65 0.22 392    -2.08    -1.22
+# marginal means ; all groups are equally weighted
+emmeans(res1, specs = ~1, df = mod_full$dfs, weights = "equal") 
+# similar to the above
+# 1       emmean    SE  df lower.CL upper.CL
+#  overall  -1.59 0.227 392    -2.04    -1.15
+emmeans(res1, specs = "Cooking_Category", df = mod_full$dfs) 
+# like above - now everything is sig - remember these are conditional
+ # Cooking_Category emmean    SE  df lower.CL upper.CL
+ # No liquid         -1.60 0.305 392    -2.20   -0.998
+ # oil-based         -1.76 0.232 392    -2.21   -1.303
+ # water-based       -1.43 0.240 392    -1.90   -0.955
+
+# OK now at some specific temp and time
+res2 <- qdrg(object = mod_full, data = dat, at = list(Temperature_in_Celsius = 100, Length_cooking_time_in_s = c(120, 600, 900, 1500)))
+res2
+# 'emmGrid' object with variables:
+#     Cooking_Category = No liquid, oil-based, water-based
+#     Temperature_in_Celsius = 100
+#     Length_cooking_time_in_s =  120,  600,  900, 1500
+#     PFAS_carbon_chain = 9.0226
+#     Volume_liquid_ml = 2509.9
+
+emmeans(res2, specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = mod_full$dfs) 
+# everything we need is here
+# Length_cooking_time_in_s =  120:
+#  Cooking_Category emmean    SE  df lower.CL upper.CL
+#  No liquid        -0.750 0.338 392    -1.41  -0.0854
+#  oil-based        -0.910 0.271 392    -1.44  -0.3780
+#  water-based      -0.578 0.218 392    -1.01  -0.1494
+# 
+# Length_cooking_time_in_s =  600:
+#  Cooking_Category emmean    SE  df lower.CL upper.CL
+#  No liquid        -1.407 0.329 392    -2.05  -0.7610
+#  oil-based        -1.568 0.261 392    -2.08  -1.0541
+#  water-based      -1.236 0.204 392    -1.64  -0.8338
+# 
+# Length_cooking_time_in_s =  900:
+#  Cooking_Category emmean    SE  df lower.CL upper.CL
+#  No liquid        -1.819 0.337 392    -2.48  -1.1563
+#  oil-based        -1.979 0.273 392    -2.52  -1.4430
+#  water-based      -1.647 0.218 392    -2.07  -1.2190
+# 
+# Length_cooking_time_in_s = 1500:
+#  Cooking_Category emmean    SE  df lower.CL upper.CL
+#  No liquid        -2.641 0.381 392    -3.39  -1.8915
+#  oil-based        -2.801 0.328 392    -3.45  -2.1567
+ water-based      -2.469 0.282 392    -3.02  -1.9145
+
+```
 
 
 ## Continous moderator (subset analyses)
