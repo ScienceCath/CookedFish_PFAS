@@ -477,7 +477,7 @@ emmeans(res2, specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = mod_f
 #  Cooking_Category emmean    SE  df lower.CL upper.CL
 #  No liquid        -2.641 0.381 392    -3.39  -1.8915
 #  oil-based        -2.801 0.328 392    -3.45  -2.1567
- water-based      -2.469 0.282 392    -3.02  -1.9145
+# water-based      -2.469 0.282 392    -3.02  -1.9145
 
 ```
 
