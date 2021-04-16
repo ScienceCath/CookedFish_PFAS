@@ -38,6 +38,7 @@ library(metaAidR)
 library(patchwork)
 library(emmeans)
 library(kableExtra)
+library(GGally)
 
 # custom functions - here
 # this is to get small sample size corrected lnRR
@@ -271,33 +272,32 @@ run_model<-function(data,formula){
 
 ```{r}
 plot_continuous<-function(data, model, moderator, xlab){
-  
-prediction <-predict.rma(model) 
 
-figure <-  data %>% # getting ride of NA values
-  mutate(ymin = prediction$ci.lb, 
-         ymax = prediction$ci.ub,
-         ymin2 = prediction$cr.lb,
-         ymax2 = prediction$cr.ub,
-         pred = prediction$pred) %>% 
-  ggplot(aes(x = moderator, y = lnRR, size = (1/sqrt(var_lnRR)))) +
-  geom_point(aes(fill = Cooking_Category), shape = 21) +
-  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotdash", lwd = 0.5, colour = "purple") +
-  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotdash", lwd = 0.5, colour = "purple") +
-  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotdash", lwd = 1, colour ="orange") +
-  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotdash", lwd = 1, colour ="orange") + 
-  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="solid", lwd = 1.3, colour ="black") +  
+pred<-predict.rma(model)
+
+data %>% mutate(fit=pred$pred, 
+               ci.lb=pred$ci.lb,
+               ci.ub=pred$ci.ub,
+               pr.lb=pred$cr.lb,
+               pr.ub=pred$cr.ub) %>% 
+ggplot(aes(x = moderator, y = lnRR)) +
+     geom_ribbon(aes(ymin = pr.lb, ymax = pr.ub, color = NULL), alpha = .075) +
+     geom_ribbon(aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = .2) +
+     geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+     scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+     geom_line(aes(y = fit), size = 1.5)+  
   labs(x = xlab, y = "lnRR", size = "Precison (1/SE)") +
   theme_bw() +
+  scale_size_continuous(range=c(1,9))+
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
           legend.position=c(0,0), 
           legend.justification = c(0,0),
           legend.background = element_blank(), 
           legend.direction="horizontal",
-          legend.title = element_text(size=15))
-
-figure
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
 }
 
 ```
@@ -318,7 +318,17 @@ summary(category_model)
 r2_ml(category_model)
 
 # plot
-orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR")
+orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR")+
+           geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
+           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = FALSE, size = 2)+ # confidence intervals
+           geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
+           scale_colour_manual(values = c("#55C667FF", "goldenrod2", "dodgerblue3"))+ # change colours
+           scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+ 
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ### PFAS carbon chain length 
@@ -332,6 +342,7 @@ summary(PFAS_model)
 r2_ml(PFAS_model)
 
 plot_continuous(dat, PFAS_model, dat$PFAS_carbon_chain, "PFAS carbon chain length")
+
 ```
 
 ### Cooking temperature 
@@ -362,7 +373,6 @@ r2_ml(time_model)
 # Plot
 dat.time<-filter(dat, Length_cooking_time_in_s!="NA")
 plot_continuous(dat.time, time_model, dat.time$Length_cooking_time_in_s, "Cooking time (s)")
-
 ```
 
 
@@ -450,6 +460,10 @@ full_model <- run_model(dat, ~ - 1 +
 summary(full_model)
 r2_ml(full_model)
 
+vif(full_model)
+
+dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_chain, Volume_liquid_ml) %>% 
+  ggpairs()
 
 save(full_model, file = here("Rdata", "full_model.RData"))
 ```
@@ -722,78 +736,69 @@ Need to do plots for Volume and PFAS carbon chain as well.
 ### Generate predictions
 ```{r}
 
-### Oil-based 
-oil_dat_time<-filter(oil_dat, Length_cooking_time_in_s!="NA") # Create a subset of oil data without missing cooking time
+  oil_dat <- filter(dat, Cooking_Category=="oil-based")
+  water_dat <- filter(dat, Cooking_Category=="water-based")
+  dry_dat <- filter(dat, Cooking_Category=="No liquid")
+
+  oil_dat_time<-filter(oil_dat, Length_cooking_time_in_s!="NA") 
+  water_dat_time<-filter(water_dat, Length_cooking_time_in_s!="NA") 
+  dry_dat_time<-filter(dry_dat, Length_cooking_time_in_s!="NA")
+  
+model_oil_time<-run_model_oil(oil_dat_time, ~Length_cooking_time_in_s) 
+model_water_time<-run_model_water(water_dat_time, ~Length_cooking_time_in_s) 
+model_dry_time<-run_model_dry(dry_dat_time, ~Length_cooking_time_in_s) 
 
 
-oil_time_model<-run_model_oil(oil_dat_time, ~Length_cooking_time_in_s) # Run model with just cooking time
-pred_oil_time_model<- predict.rma(oil_time_model) # predict values
+pred_oil_time<-predict.rma(model_oil_time)
+pred_water_time<-predict.rma(model_water_time)
+pred_dry_time<-predict.rma(model_dry_time)
 
+oil_dat_time<-mutate(oil_dat_time,
+                    ci.lb = pred_oil_time$ci.lb, # lower bound of the confidence interval for oil
+                    ci.ub = pred_oil_time$ci.ub, # upper bound of the confidence interval for oil
+                    fit = pred_oil_time$pred) # regression line for oil
 
-oil_dat_time <- mutate(oil_dat_time,
-                    ymin = pred_oil_time_model$ci.lb, # lower bound of the confidence interval for oil
-                    ymax = pred_oil_time_model$ci.ub, # upper bound of the confidence interval for oil
-                    ypred = pred_oil_time_model$pred) # regression line for oil
+water_dat_time<-mutate(water_dat_time,
+                    ci.lb = pred_water_time$ci.lb, # lower bound of the confidence interval for water
+                    ci.ub = pred_water_time$ci.ub, # upper bound of the confidence interval for water
+                    fit = pred_water_time$pred) # regression line for water
 
-### Water-based
-
-water_dat_time<-filter(water_dat, Length_cooking_time_in_s!="NA") # Create a subset of water data without missing cooking time
-
-
-water_time_model<-run_model_water(water_dat_time, ~Length_cooking_time_in_s) # Run model with just cooking time
-pred_water_time_model<- predict.rma(water_time_model) # predict values
-
-
-water_dat_time <- mutate(water_dat_time,
-                    zmin = pred_water_time_model$ci.lb, # lower bound of the confidence interval for water
-                    zmax = pred_water_time_model$ci.ub, # upper bound of the confidence interval for water
-                    zpred = pred_water_time_model$pred) # regression line for water
-
-### Dry 
-
-
-dry_dat_time<-filter(dry_dat, Length_cooking_time_in_s!="NA") # Create a subset of dry data without missing cooking time
-
-
-dry_time_model<-run_model_dry(dry_dat_time, ~ Length_cooking_time_in_s) # Run model with just cooking time
-pred_dry_time_model<- predict.rma(dry_time_model) # predict values
-
-
-dry_dat_time <- mutate(dry_dat_time,
-                    wmin = pred_dry_time_model$ci.lb, # lower bound of the confidence interval for dry
-                    wmax = pred_dry_time_model$ci.ub, # upper bound of the confidence interval for dry
-                    wpred = pred_dry_time_model$pred) # regression line for dry
+dry_dat_time<-mutate(dry_dat_time,
+                    ci.lb = pred_dry_time$ci.lb, # lower bound of the confidence interval for dry
+                    ci.ub = pred_dry_time$ci.ub, # upper bound of the confidence interval for dry
+                    fit = pred_dry_time$pred) # regression line for dry
 ```
+
+
 ### Plot
 ```{r, fig.height=8, fig.width=10}
 
-ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, size = (1/sqrt(var_lnRR)),col= Cooking_Category)) + 
-   
-       geom_point(alpha=0.5) + scale_color_manual(values=c("gray30","goldenrod2", "mediumblue"))+
+ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
   
-       geom_smooth(data=oil_dat_time,aes(y = ymin), method = "loess", se = FALSE, lty = "dotdash", lwd = 0.75, colour = "goldenrod2") + # add lower confidence interval of oil
-       geom_smooth(data=oil_dat_time,aes(y = ymax), method = "loess", se = FALSE, lty = "dotted", lwd = 0.75, colour = "goldenrod2") + # add upper confidence interval of oil
-       geom_smooth(data=oil_dat_time, aes(y = ypred), method = "loess", se = FALSE, lty = "solid", lwd = 1.8, colour = "goldenrod2") + # add regression line of oil
+       geom_ribbon(data=water_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.1) +
+       geom_line(data=water_dat_time,aes(y = fit), size = 1.5, col="dodgerblue")+  
   
-       geom_smooth(data=water_dat_time,aes(y = zmin), method = "loess", se = FALSE, lty = "dotdash", lwd = 0.75, colour = "mediumblue") + # add lower CI of water
-       geom_smooth(data=water_dat_time,aes(y = zmax), method = "loess", se = FALSE, lty = "dotdash", lwd = 0.75, colour = "mediumblue") + # add upper CI of water
-       geom_smooth(data=water_dat_time,aes(y = zpred), method = "loess", se = FALSE, lty = "solid", lwd = 1.8, colour = "mediumblue") + # add regression line of water
+       geom_ribbon(data=oil_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=oil_dat_time,aes(y = fit), size = 1.5, col="goldenrod")+  
   
-       geom_smooth(data=dry_dat_time,aes(y = wmin), method = "loess", se = FALSE, lty = "dotdash", lwd = 0.75, colour = "gray30") + # add lower CI of dry
-       geom_smooth(data=dry_dat_time,aes(y = wmax), method = "loess", se = FALSE, lty = "dotdash", lwd = 0.75, colour = "gray30") + # add upper CI of dry
-       geom_smooth(data=dry_dat_time,aes(y = wpred), method = "loess", se = FALSE, lty = "solid", lwd = 1.8, colour = "gray30") +# add regression line of dry
+         geom_ribbon(data=dry_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=dry_dat_time,aes(y = fit), size = 1.5, col="palegreen3")+  
   
   
-         labs(x = "Cooking time (s)", y = "lnRR", size = "Precision (1/SE)") + 
-         geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+
-         scale_size_continuous(range = c(1, 9))+
-         theme_bw() + 
-         theme(legend.position = c(1, 1), 
-               legend.justification = c(1, 1),
-               legend.direction = "horizontal",
-               legend.background = element_blank(),
-               text = element_text(size = 20, colour = "black", hjust = 0.5),
-               legend.title = element_text(size=16))
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
 
 ```
 
@@ -828,5 +833,107 @@ egger_n <- run_model(dat, ~ I(sqrt(1/N_tilde)))
 summary(egger_n)
 
 save(egger_all, egger_n, file = here("Rdata", "egger_regressions.RData"))
+```
+
+```{r, fig.width=9, fig.height=7}
+pub_year<-run_model(dat, ~Publication_year)
+summary(pub_year)
+
+plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
+
+```
+
+
+
+ # Sensitivity analysis
+ 
+ Leave-one-out analyses 
+ 
+Here, we iteratively removed one study at the time and investigated how it affects the overall mean. Removing one of the study particularly modifies the estimate, but none of these models show a significant overall difference in PFAS concentration with cooking.
+ 
+```{r}
+dat$Study_ID<-as.factor(dat$Study_ID)
+dat<-as.data.frame(dat) # Only work with a dataframe
+VCV_matrix<-list() # will need new VCV matrices because the sample size will be iteratively reduced
+Leave1studyout<-list() # create a list that will host the results of each model 
+for(i in 1:length(levels(dat$Study_ID))){ # N models = N studies 
+  VCV_matrix[[i]]<-make_VCV_matrix(dat[dat$Study_ID != levels(dat$Study_ID)[i], ], V="var_lnRR", cluster="Cohort_ID", obs="Effect_ID") # Create a new VCV matrix for each new model
+  Leave1studyout[[i]] <- rma.mv(yi = lnRR, V = VCV_matrix[[i]], # Same model structure as all the models we fitted
+                                random = list(~1|Study_ID,
+                                              ~1|Phylogeny, 
+                                              ~1|Species_common, 
+                                              ~1|PFAS_type, 
+                                              ~1|Effect_ID),
+                                R= list(Phylogeny = cor_tree), 
+                                test = "t", 
+                                data = dat[dat$Study_ID != levels(dat$Study_ID)[i], ]) # Generate a new model for each new data (iterative removal of one study at a time)
+}
+
+# The output is a list so we need to summarise the coefficients of all the models performed
+
+results.Leave1studyout<-as.data.frame(cbind(
+                                           sapply(Leave1studyout, function(x) summary(x)$beta), # extract the beta coefficient from all models
+                                           sapply(Leave1studyout, function(x) summary(x)$se), # extract the standard error from all models
+                                           sapply(Leave1studyout, function(x) summary(x)$zval),  # extract the z value from all models
+                                           sapply(Leave1studyout, function(x) summary(x)$pval), # extract the p value from all models
+                                           sapply(Leave1studyout, function(x) summary(x)$ci.lb), # extract the lower confidence interval for all models
+                                           sapply(Leave1studyout, function(x) summary(x)$ci.ub))) # extract the upper confidence interval for all models
+
+colnames(results.Leave1studyout)=c("Estimate", "SE", "zval", "pval", "ci.lb", "ci.ub") # change column names 
+kable(results.Leave1studyout)%>% kable_styling("striped", position="left") %>% scroll_box(width="100%", height="500px") # Table of the results from all models
+
+
+dat %>% group_by(Author_year, Study_ID) %>% summarise(mean=mean(lnRR)) # Study F005 (DelGobbo_2008) has much lower effect sizes than the others. 
+```
+
+## Subset analysis without Study_ID F005 
+```{r, fig.width=9, fig.height=7}
+
+# Length_cooking_time_in_s
+dat.sens<-filter(dat, Author_year!="DelGobbo_2008")
+
+include <- row.names(cor_tree) %in% dat.sens$Phylogeny # Check which rows are present in the phylogenetic tree 
+cor_tree_sens <- cor_tree[include, include] # Only include the species that match the reduced data set 
+
+  dat.sens<-as.data.frame(dat.sens) # convert data set into a data frame to calculate VCV matrix 
+  VCV_lnRR.sens<-make_VCV_matrix(dat.sens, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
+  
+mod.sens<- rma.mv(lnRR, VCV_lnRR.sens, 
+         mods=~Length_cooking_time_in_s,
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree_sens), 
+         test = "t", 
+         data = dat.sens)
+summary(mod.sens)
+
+dat.time.sens<-filter(dat.sens, Length_cooking_time_in_s!="NA")
+plot_continuous(dat.time.sens, mod.sens, dat.time.sens$Length_cooking_time_in_s, "Cooking time (s)") # The relationship with cooking time appears even stronger
+```
+
+```{r, fig.width=9, fig.height=7}
+dat.sens.vol<-filter(dat.sens, Volume_liquid_ml!="NA")
+include <- row.names(cor_tree) %in% dat.sens.vol$Phylogeny # Check which rows are present in the phylogenetic tree 
+cor_tree_sens.vol <- cor_tree[include, include] # Only include the species that match the reduced data set 
+VCV_lnRR.sens.vol<-make_VCV_matrix(dat.sens.vol, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
+
+
+mod.sens.vol<- rma.mv(lnRR, VCV_lnRR.sens.vol, 
+         mods=~ log(Volume_liquid_ml),
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree_sens.vol), 
+         test = "t", 
+         data = dat.sens.vol)
+summary(mod.sens.vol)
+
+plot_continuous(dat.sens.vol, mod.sens.vol, log(dat.sens.vol$Volume_liquid_ml), "Volume (s)") # The relationship with cooking time appears even stronger
+
 ```
 
