@@ -39,6 +39,7 @@ library(patchwork)
 library(emmeans)
 library(kableExtra)
 library(GGally)
+library(ggridges)
 
 # custom functions - here
 # this is to get small sample size corrected lnRR
@@ -226,7 +227,17 @@ summary(MA_model)
 i2_ml(MA_model) # Percentage of heterogeneity explained by each random effect
 
 # plot
-orchard_plot(MA_model, mod = "Int", xlab = "lnRR") # Orchard plot 
+orchard_plot(MA_model, mod = "Int", xlab = "lnRR", alpha=0.4) +  # Orchard plot 
+           geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
+           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = FALSE, size = 2)+ # confidence intervals
+           geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
+           scale_colour_manual(values = "darkorange")+ # change colours
+           scale_fill_manual(values="darkorange")+ 
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13)) 
 
 save(MA_model, MA_all_rand_effects, file = here("Rdata", "int_MA_models.RData")) # save the models 
 ```
@@ -318,7 +329,7 @@ summary(category_model)
 r2_ml(category_model)
 
 # plot
-orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR")+
+orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR", alpha=0.4)+
            geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
            geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = FALSE, size = 2)+ # confidence intervals
            geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
@@ -460,6 +471,8 @@ full_model <- run_model(dat, ~ - 1 +
 summary(full_model)
 r2_ml(full_model)
 
+## Check for collinerarity - seems fine
+
 vif(full_model)
 
 dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_chain, Volume_liquid_ml) %>% 
@@ -515,9 +528,10 @@ summary(full_model_org_units)
 
 ```{r}
 res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
+res_mean_values
 
 emmeans(res_mean_values, specs = ~1, df = full_model_org_units$dfs) # Marginalised mean at the mean value of each predictor in the full model
-# When all predictors at set to their mean level, the mean effect size is -1.59 (79.6 % decrease in PFAS content in experimental vs. control samples)
+# When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
 ```
 
 ## Marginalised means for different cooking categories
@@ -532,6 +546,7 @@ Here, we generate estimates at cooking times of 2, 5, 10, 15, 20 and 25 min.
 
 ```{r}
 res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200, 1500)))
+res_cooking_time 
 ```
 
 ### Marginalised mean estimate at each cooking time
@@ -552,6 +567,7 @@ Here, we generate marginalised estimates at volumes of liquid of ~10, 500, 1000,
 
 ```{r}
 res_volume <- qdrg(object = full_model_org_units, data = dat, at = list(log_Volume_liquid_ml= c(2.3, 6.2, 6.9, 8.5, 9.2)))
+res_volume 
 
 emmeans(res_volume , specs = ~ 1 |  log_Volume_liquid_ml, df = full_model_org_units$dfs) 
 ```
@@ -562,6 +578,7 @@ Here, we generate marginalised estimates for PFAS of 3, 6, 9 and 12 carbon chain
 
 ```{r}
 res_PFAS <- qdrg(object = full_model_org_units, data = dat, at = list(PFAS_carbon_chain= c(3, 6, 9, 12)))
+res_PFAS 
 ```
 
 
@@ -775,7 +792,7 @@ dry_dat_time<-mutate(dry_dat_time,
 
 ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
   
-       geom_ribbon(data=water_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.1) +
+       geom_ribbon(data=water_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
        geom_line(data=water_dat_time,aes(y = fit), size = 1.5, col="dodgerblue")+  
   
        geom_ribbon(data=oil_dat_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
@@ -803,9 +820,142 @@ ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
 ```
 
 
-## 
+## Volume of liquid 
+
+### Generate predictions
+```{r}
+
+  oil_dat_vol<-filter(oil_dat, Volume_liquid_ml!="NA") 
+  water_dat_vol<-filter(water_dat, Volume_liquid_ml!="NA") 
+  dry_dat_vol<-filter(dry_dat, Volume_liquid_ml!="NA")
+  
+model_oil_vol<-run_model_oil(oil_dat_vol, ~log(Volume_liquid_ml)) 
+model_water_vol<-run_model_water(water_dat_vol, ~log(Volume_liquid_ml)) 
+model_dry_vol<-run_model_dry(dry_dat_vol, ~log(Volume_liquid_ml)) 
 
 
+pred_oil_vol<-predict.rma(model_oil_vol)
+pred_water_vol<-predict.rma(model_water_vol)
+pred_dry_vol<-predict.rma(model_dry_vol)
+
+oil_dat_vol<-mutate(oil_dat_vol,
+                    ci.lb = pred_oil_vol$ci.lb, 
+                    ci.ub = pred_oil_vol$ci.ub, 
+                    fit = pred_oil_vol$pred) 
+
+water_dat_vol<-mutate(water_dat_vol,
+                    ci.lb = pred_water_vol$ci.lb, 
+                    ci.ub = pred_water_vol$ci.ub, 
+                    fit = pred_water_vol$pred) 
+
+dry_dat_vol<-mutate(dry_dat_vol,
+                    ci.lb = pred_dry_vol$ci.lb, 
+                    ci.ub = pred_dry_vol$ci.ub, 
+                    fit = pred_dry_vol$pred) 
+```
+
+
+### Plot
+```{r, fig.height=8, fig.width=10}
+
+ggplot(dat,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=water_dat_vol, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=water_dat_vol,aes(y = fit), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=oil_dat_vol, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=oil_dat_vol,aes(y = fit), size = 1.5, col="goldenrod")+  
+  
+         geom_ribbon(data=dry_dat_vol, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=dry_dat_vol,aes(y = fit), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "ln(Volume of liquid (mL))", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), 
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+
+```
+
+## PFAS carbon chain length
+
+### Generate predictions
+```{r}
+
+  oil_dat_PFAS<-filter(oil_dat, PFAS_carbon_chain!="NA") 
+  water_dat_PFAS<-filter(water_dat, PFAS_carbon_chain!="NA") 
+  dry_dat_PFAS<-filter(dry_dat, PFAS_carbon_chain!="NA")
+  
+model_oil_PFAS<-run_model_oil(oil_dat_PFAS, ~PFAS_carbon_chain) 
+model_water_PFAS<-run_model_water(water_dat_PFAS, ~PFAS_carbon_chain) 
+model_dry_PFAS<-run_model_dry(dry_dat_PFAS, ~PFAS_carbon_chain) 
+
+
+pred_oil_PFAS<-predict.rma(model_oil_PFAS)
+pred_water_PFAS<-predict.rma(model_water_PFAS)
+pred_dry_PFAS<-predict.rma(model_dry_PFAS)
+
+oil_dat_PFAS<-mutate(oil_dat_PFAS,
+                    ci.lb = pred_oil_PFAS$ci.lb, 
+                    ci.ub = pred_oil_PFAS$ci.ub, 
+                    fit = pred_oil_PFAS$pred) 
+
+water_dat_PFAS<-mutate(water_dat_PFAS,
+                    ci.lb = pred_water_PFAS$ci.lb, 
+                    ci.ub = pred_water_PFAS$ci.ub, 
+                    fit = pred_water_PFAS$pred) 
+
+dry_dat_PFAS<-mutate(dry_dat_PFAS,
+                    ci.lb = pred_dry_PFAS$ci.lb, 
+                    ci.ub = pred_dry_PFAS$ci.ub, 
+                    fit = pred_dry_PFAS$pred) 
+```
+
+
+### Plot
+```{r, fig.height=8, fig.width=10}
+
+ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
+  
+      geom_ribbon(data=dry_dat_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=dry_dat_PFAS,aes(y = fit), size = 1.5, col="palegreen3")+  
+  
+       geom_ribbon(data=water_dat_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=water_dat_PFAS,aes(y = fit), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=oil_dat_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=oil_dat_PFAS,aes(y = fit), size = 1.5, col="goldenrod")+  
+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), 
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+
+```
+
+##
 
 # **Publication bias** {.tabset .tabset_fade .tabset_pills} 
 
@@ -834,22 +984,24 @@ summary(egger_n)
 
 save(egger_all, egger_n, file = here("Rdata", "egger_regressions.RData"))
 ```
+## Publication year
 
-```{r, fig.width=9, fig.height=7}
+```{r, fig.height=8, fig.width=10}
 pub_year<-run_model(dat, ~Publication_year)
 summary(pub_year)
 
 plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
 
 ```
+##
 
 
-
- # Sensitivity analysis
+ # **Sensitivity analyses**
  
- Leave-one-out analyses 
+ ## Leave-one-out analyses 
  
 Here, we iteratively removed one study at the time and investigated how it affects the overall mean. Removing one of the study particularly modifies the estimate, but none of these models show a significant overall difference in PFAS concentration with cooking.
+
  
 ```{r}
 dat$Study_ID<-as.factor(dat$Study_ID)
@@ -886,10 +1038,11 @@ kable(results.Leave1studyout)%>% kable_styling("striped", position="left") %>% s
 dat %>% group_by(Author_year, Study_ID) %>% summarise(mean=mean(lnRR)) # Study F005 (DelGobbo_2008) has much lower effect sizes than the others. 
 ```
 
-## Subset analysis without Study_ID F005 
-```{r, fig.width=9, fig.height=7}
+### Subset analysis without `Study_ID F005 (Del Gobbo et al. 2008)` {.tabset .tabset_fade .tabset_pills} 
 
-# Length_cooking_time_in_s
+#### Cooking time 
+```{r, fig.height=8, fig.width=10}
+
 dat.sens<-filter(dat, Author_year!="DelGobbo_2008")
 
 include <- row.names(cor_tree) %in% dat.sens$Phylogeny # Check which rows are present in the phylogenetic tree 
@@ -914,7 +1067,12 @@ dat.time.sens<-filter(dat.sens, Length_cooking_time_in_s!="NA")
 plot_continuous(dat.time.sens, mod.sens, dat.time.sens$Length_cooking_time_in_s, "Cooking time (s)") # The relationship with cooking time appears even stronger
 ```
 
-```{r, fig.width=9, fig.height=7}
+
+
+#### Volume of liquid 
+
+
+```{r, fig.height=8, fig.width=10}
 dat.sens.vol<-filter(dat.sens, Volume_liquid_ml!="NA")
 include <- row.names(cor_tree) %in% dat.sens.vol$Phylogeny # Check which rows are present in the phylogenetic tree 
 cor_tree_sens.vol <- cor_tree[include, include] # Only include the species that match the reduced data set 
@@ -933,7 +1091,104 @@ mod.sens.vol<- rma.mv(lnRR, VCV_lnRR.sens.vol,
          data = dat.sens.vol)
 summary(mod.sens.vol)
 
-plot_continuous(dat.sens.vol, mod.sens.vol, log(dat.sens.vol$Volume_liquid_ml), "Volume (s)") # The relationship with cooking time appears even stronger
+plot_continuous(dat.sens.vol, mod.sens.vol, log(dat.sens.vol$Volume_liquid_ml), "ln(Volume of liquid (mL))") # The relationship with cooking time appears even stronger
 
 ```
 
+##### Does PFAS concentration vary with the volume of water with this data subset? 
+
+**The effect of `volume of liquid` is entirely driven by one study!!**
+
+```{r, fig.height=8, fig.width=10}
+  oil_dat.sens <- filter(dat.sens, Cooking_Category=="oil-based")
+  water_dat.sens <- filter(dat.sens, Cooking_Category=="water-based")
+  dry_dat.sens <- filter(dat.sens, Cooking_Category=="No liquid")
+  
+  
+  oil_dat_vol.sens<-filter(oil_dat.sens, Volume_liquid_ml!="NA") 
+  water_dat_vol.sens<-filter(water_dat.sens, Volume_liquid_ml!="NA") 
+  dry_dat_vol.sens<-filter(dry_dat.sens, Volume_liquid_ml!="NA")
+  
+model_oil_vol.sens<-run_model_oil(oil_dat_vol.sens, ~log(Volume_liquid_ml)) 
+model_water_vol.sens<-run_model_water(water_dat_vol.sens, ~log(Volume_liquid_ml)) 
+model_dry_vol.sens<-run_model_dry(dry_dat_vol.sens, ~log(Volume_liquid_ml)) 
+
+pred_oil_vol.sens<-predict.rma(model_oil_vol.sens)
+pred_water_vol.sens<-predict.rma(model_water_vol.sens)
+pred_dry_vol.sens<-predict.rma(model_dry_vol.sens)
+
+oil_dat_vol.sens<-mutate(oil_dat_vol.sens,
+                    ci.lb = pred_oil_vol.sens$ci.lb, 
+                    ci.ub = pred_oil_vol.sens$ci.ub, 
+                    fit = pred_oil_vol.sens$pred) 
+
+water_dat_vol.sens<-mutate(water_dat_vol.sens,
+                    ci.lb = pred_water_vol.sens$ci.lb, 
+                    ci.ub = pred_water_vol.sens$ci.ub, 
+                    fit = pred_water_vol.sens$pred) 
+
+dry_dat_vol.sens<-mutate(dry_dat_vol.sens,
+                    ci.lb = pred_dry_vol.sens$ci.lb, 
+                    ci.ub = pred_dry_vol.sens$ci.ub, 
+                    fit = pred_dry_vol.sens$pred) 
+
+# Actual plot
+
+ggplot(dat.sens,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=water_dat_vol.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=water_dat_vol.sens,aes(y = fit), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=oil_dat_vol.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=oil_dat_vol.sens,aes(y = fit), size = 1.5, col="goldenrod")+  
+  
+         geom_ribbon(data=dry_dat_vol.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=dry_dat_vol.sens,aes(y = fit), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "ln(Volume of liquid (mL))", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), 
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+
+```
+
+
+
+
+#### PFAS carbon chain 
+
+```{r, fig.width=9, fig.height=7}
+dat.sens.PFAS<-filter(dat.sens, PFAS_carbon_chain!="NA")
+include <- row.names(cor_tree) %in% dat.sens.PFAS$Phylogeny # Check which rows are present in the phylogenetic tree 
+cor_tree_sens.PFAS <- cor_tree[include, include] # Only include the species that match the reduced data set 
+VCV_lnRR.sens.PFAS<-make_VCV_matrix(dat.sens.PFAS, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
+
+
+mod.sens.PFAS<- rma.mv(lnRR, VCV_lnRR.sens.PFAS, 
+         mods=~ PFAS_carbon_chain,
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree_sens.PFAS), 
+         test = "t", 
+         data = dat.sens.PFAS)
+summary(mod.sens.PFAS)
+
+plot_continuous(dat.sens.PFAS, mod.sens.PFAS, dat.sens.PFAS$PFAS_carbon_chain, "PFAS carbon chain length") # The relationship with cooking time appears even stronger
+
+```
+
+##
