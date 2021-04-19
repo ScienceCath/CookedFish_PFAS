@@ -35,9 +35,9 @@ https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9e
 
 ```{r load pilot data, echo=FALSE}
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
-fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccncccccncncccccnncccnccnncncnccnnncncncccccccc") #with specifying column types
+fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccccncncccccnncccnccnncncnccnnncncncccccccc") #with specifying column types
 dim(fishdata)
-#610  47
+#610  48
 names(fishdata)
 #View(fishdata)
 str(fishdata)
@@ -91,6 +91,8 @@ fishdata_3 %>% distinct(Unit_LOD_LOQ)
 fishdata_3 %>% distinct(Raw_data_provided)
 
 fishdata_3 %>% distinct(Invertebrate_vertebrate)
+
+fishdata_3 %>% distinct(Fish_mollusc)
 
 fishdata_3 %>% distinct(Moisture_loss_in_percent)
 
@@ -544,6 +546,27 @@ table_Invertebrate_vertebrate %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
 
 ```
+
+#### Fish_mollusc
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_3$Fish_mollusc)
+
+fishdata_3 %>% distinct(Fish_mollusc)
+
+fishdata_3 %>% count(Fish_mollusc)
+
+table_Fish_mollusc <- fishdata_3 %>%
+  group_by(Fish_mollusc) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(n_effect_sizes))
+
+table_Fish_mollusc %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+```
+
 
 #### Species_common
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
