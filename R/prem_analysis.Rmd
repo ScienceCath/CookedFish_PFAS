@@ -1123,19 +1123,22 @@ pred_dry_PFAS<-left_join(dry_dat, pred_dry_PFAS, by="PFAS_carbon_chain")
 
 ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
   
+    
+       geom_ribbon(data=pred_dry_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_PFAS,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
        geom_ribbon(data=pred_water_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
        geom_line(data=pred_water_PFAS,aes(y = pred), size = 1.5, col="dodgerblue")+  
   
-        geom_ribbon(data=pred_dry_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
-       geom_line(data=pred_dry_PFAS,aes(y = pred), size = 1.5, col="palegreen3")+  
   
-       geom_ribbon(data=pred_oil_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_ribbon(data=pred_oil_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
        geom_line(data=pred_oil_PFAS,aes(y = pred), size = 1.5, col="goldenrod")+  
   
   
        geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
        scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
-       labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
+       labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
