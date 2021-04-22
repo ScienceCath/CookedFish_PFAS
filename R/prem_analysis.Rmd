@@ -1330,6 +1330,71 @@ ggplot(dat.sens,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Categor
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 
 ```
+###### Predictions with the full model
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_time.sens<- run_model_oil(oil_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_oil_time.sens<-predict.rma(full_model_oil_time.sens, addx=TRUE, newmods=cbind(0,c(120:1500), 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_oil_time.sens<-as.data.frame(pred_oil_time.sens)
+pred_oil_time.sens$Length_cooking_time_in_s=pred_oil_time.sens$X.Length_cooking_time_in_s
+pred_oil_time.sens<-left_join(oil_dat.sens, pred_oil_time.sens, by="Length_cooking_time_in_s")
+
+
+##### Water based
+full_model_water_time.sens<- run_model_water(water_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_water_time.sens<-predict.rma(full_model_water_time.sens, addx=TRUE, newmods=cbind(c(120:1500), 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_time.sens<-as.data.frame(pred_water_time.sens)
+pred_water_time.sens$Length_cooking_time_in_s=pred_water_time.sens$X.Length_cooking_time_in_s
+pred_water_time.sens<-left_join(water_dat, pred_water_time.sens, by="Length_cooking_time_in_s")
+
+##### No liquid 
+
+full_model_dry_time.sens<- run_model_dry(dry_dat.sens, ~ Length_cooking_time_in_s)
+
+pred_dry_time.sens<-predict.rma(full_model_dry_time.sens, addx=TRUE) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_dry_time.sens<-as.data.frame(pred_dry_time.sens)
+pred_dry_time.sens$Length_cooking_time_in_s=pred_dry_time.sens$X.Length_cooking_time_in_s
+pred_dry_time.sens<-left_join(dry_dat.sens, pred_dry_time.sens, by="Length_cooking_time_in_s")
+
+
+
+
+ggplot(dat.sens,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=pred_water_time.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_time.sens,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=pred_oil_time.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_time.sens,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+        geom_ribbon(data=pred_dry_time.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_time.sens,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
 
 
 
@@ -1429,6 +1494,59 @@ ggplot(dat.sens,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category))
 
 
 
+##### Predictions with the full model
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_vol.sens<- run_model_oil(oil_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           scale(PFAS_carbon_chain) +
+                                           log_Volume_liquid_ml)
+pred_oil_vol.sens<-predict.rma(full_model_oil_vol.sens, addx=TRUE, newmods=cbind(0,0,0, c(log(5):log(750))))# Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+
+pred_oil_vol.sens<-as.data.frame(pred_oil_vol.sens)
+pred_oil_vol.sens<-pred_oil_vol.sens %>% mutate(Volume_liquid_ml=exp(X.log_Volume_liquid_ml), Cooking_Category="oil-based", lnRR=0) # for the plot to work, we need to add a column with cooking category and a column with lnRR
+
+
+##### Water based 
+
+full_model_water_vol.sens<- run_model_water(water_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           scale(PFAS_carbon_chain) +
+                                           log_Volume_liquid_ml)
+
+pred_water_vol.sens<-predict.rma(full_model_water_vol.sens, addx=TRUE, newmods=cbind(0,0, c(5.521461:7.824046)))# Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+
+pred_water_vol.sens<-as.data.frame(pred_water_vol.sens)
+pred_water_vol.sens<-pred_water_vol.sens %>% mutate(Volume_liquid_ml=exp(X.log_Volume_liquid_ml), Cooking_Category="water-based", lnRR=0)
+
+
+
+ggplot(dat.sens,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=pred_water_vol.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_vol.sens,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=pred_oil_vol.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_vol.sens,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF","goldenrod2", "dodgerblue3"))+
+       labs(x = "ln(Volume of liquid (mL))", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), 
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2)) #### The line doesn't go all the way down (the predict function doesn't capture the biggest values)
+
+```
 
 #### PFAS carbon chain 
 
@@ -1520,6 +1638,75 @@ ggplot(dat.sens,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 
 ```
+
+##### Predictions with the full model
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_PFAS.sens<- run_model_oil(oil_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Volume_liquid_ml)))
+pred_oil_PFAS.sens<-predict.rma(full_model_oil_PFAS.sens, addx=TRUE, newmods=cbind(0,0, c(3:14),0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of PFAS carbon chain
+pred_oil_PFAS.sens<-as.data.frame(pred_oil_PFAS.sens)
+pred_oil_PFAS.sens$PFAS_carbon_chain=pred_oil_PFAS.sens$X.PFAS_carbon_chain
+pred_oil_PFAS.sens<-left_join(oil_dat.sens, pred_oil_PFAS.sens, by="PFAS_carbon_chain")
+
+
+##### Water based
+full_model_water_PFAS.sens<- run_model_water(water_dat.sens, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_water_PFAS.sens<-predict.rma(full_model_water_PFAS.sens, addx=TRUE, newmods=cbind(0, c(3:14),0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_PFAS.sens<-as.data.frame(pred_water_PFAS.sens)
+pred_water_PFAS.sens$PFAS_carbon_chain=pred_water_PFAS.sens$X.PFAS_carbon_chain
+pred_water_PFAS.sens<-left_join(water_dat.sens, pred_water_PFAS.sens, by="PFAS_carbon_chain")
+
+##### No liquid 
+
+full_model_dry_PFAS.sens<- run_model_dry(dry_dat.sens, ~ PFAS_carbon_chain)
+
+pred_dry_PFAS.sens<-predict.rma(full_model_dry_PFAS.sens, addx=TRUE)
+pred_dry_PFAS.sens<-as.data.frame(pred_dry_PFAS.sens)
+pred_dry_PFAS.sens$PFAS_carbon_chain=pred_dry_PFAS.sens$X.PFAS_carbon_chain
+pred_dry_PFAS.sens<-left_join(dry_dat.sens, pred_dry_PFAS.sens, by="PFAS_carbon_chain")
+
+
+
+
+ggplot(dat.sens,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
+  
+    
+       geom_ribbon(data=pred_dry_PFAS.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_PFAS.sens,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_ribbon(data=pred_water_PFAS.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_PFAS.sens,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+  
+       geom_ribbon(data=pred_oil_PFAS.sens, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_PFAS.sens,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
 
 
 #### Funnel plot 
