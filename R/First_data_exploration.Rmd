@@ -606,6 +606,12 @@ table_Temperature_in_Celsius_2 <- fishdata_3 %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(Temperature_in_Celsius))
 
+temp <- fishdata_3 %>% filter(!is.na(Temperature_in_Celsius))
+
+mean(temp$Temperature_in_Celsius)
+
+range(temp$Temperature_in_Celsius)
+
 table_Temperature_in_Celsius %>%
   kbl() %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
@@ -626,6 +632,17 @@ table_Length_cooking_time_in_s <- fishdata_3 %>%
   group_by(Length_cooking_time_in_s) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(n_effect_sizes))
+
+fishdata_3 %>%
+  group_by(Length_cooking_time_in_s) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(Length_cooking_time_in_s))
+
+fish <- fishdata_3 %>% filter(!is.na(Length_cooking_time_in_s))
+
+mean(fish$Length_cooking_time_in_s)
+
+range((fish$Length_cooking_time_in_s))
 
 table_Length_cooking_time_in_s %>%
   kbl() %>%
@@ -681,6 +698,12 @@ table_Volume_liquid_ml_2 <- fishdata_3 %>%
   group_by(Volume_liquid_ml, Oil) %>%
   summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
   arrange(desc(Volume_liquid_ml))
+
+volume <- fishdata_3 %>% filter(!is.na(Volume_liquid_ml))
+
+mean(volume$Volume_liquid_ml)
+
+range(volume$Volume_liquid_ml)
 
 table_Volume_liquid_ml %>%
   kbl() %>%
