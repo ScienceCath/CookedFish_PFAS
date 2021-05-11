@@ -424,6 +424,45 @@ ggplot() +
   coord_flip()
 ```
 
+#### PFAS_carbon_chain
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_3$PFAS_carbon_chain)
+#12
+
+fishdata_3 %>% distinct(PFAS_carbon_chain)
+
+fishdata_3 %>% count(PFAS_carbon_chain)
+
+fishdata_3 %>% count(PFAS_carbon_chain,Study_ID) %>% count(Study_ID)
+
+table_PFAS_chain <- fishdata_3 %>%
+  group_by(PFAS_carbon_chain) %>%
+  summarize(n_effect_sizes = n(), n_studies = n_distinct(Study_ID)) %>%
+  arrange(desc(PFAS_carbon_chain))
+
+table_PFAS_chain %>%
+  kbl() %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped"))
+
+table_PFAS_type %>%
+  pivot_longer(cols = c(n_effect_sizes, n_studies),
+               names_to = 'n_type') %>%
+ggplot() +
+  geom_bar(stat = 'identity',
+           aes(x = PFAS_carbon_chain,
+               y = value,
+               fill = n_type),
+           position=position_dodge()) +
+  coord_flip()
+
+chain <- fishdata_3 %>% filter(!is.na(PFAS_carbon_chain))
+
+mean(chain$PFAS_carbon_chain)
+
+range(chain$PFAS_carbon_chain)
+```
+
 #### Choice_of_9
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
