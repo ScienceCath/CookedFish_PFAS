@@ -45,12 +45,13 @@ library(GGally)
 # this is to get small sample size corrected lnRR
 # also, the correlated samples - MS should put formulas of what we used and assumptions
 # averaged 
+# TODO - a note for Patrice - there was a msitake in this so all results could change
 lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.8){
   lnRR <- log(Me/Mc) + 
         0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
   
-  var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) + 
-         rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc+Ne))
+  var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) - 
+         2*rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc)) # there was some mistake - Nc = Ne = always hold
   
   data.frame(lnRR,var_lnRR)
 }

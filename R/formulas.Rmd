@@ -1,0 +1,36 @@
+---
+title: "formulas"
+author: "Shinichi Nakagawa"
+date: "17/05/2021"
+output: html_document
+---
+
+
+$$
+\ln{\text{RR}} = \ln \left( \frac{m_{T}} {m_{C}}\right) + 
+\frac{1}{2} \left(\frac{\text{CV}_T^2} {n_{T}} - \frac{\text{CV}_C^2} {n_{C}}\right), 
+$$
+
+
+$$
+v(\ln{\text{RR}}) = \frac{\text{CV}_T^2} {n_{T}} + \frac{\text{CV}_C^2} {n_{C}} - 2r_{TC}\frac{\text{CV}_T \text{CV}_C}{\sqrt{n_Cn_T}},
+$$
+$n_{T} = n_{C} = n$
+
+$\text{CV}_C = sd_T/m_T$ and $\text{CV}_C = sd_C/m_C$
+
+
+$$
+\ln{\text{RR}} = \ln \left( \frac{m_{T}} {m_{C}}\right) + 
+\frac{1}{2} \left(\frac{\sum_{i=1}^{k}{\text{CV}_{Ti}^2}/k} {n_{T}} - \frac{\sum_{i=1}^{k}{\text{CV}_{Ci}^2}/k} {n_{C}}\right), 
+$$
+
+
+$$
+v(\ln{\text{RR}})= \frac{\sum_{i=1}^{k}{\text{CV}_{Ti}^2}/k} {n_{T
+}} + \frac{\sum_{i=1}^{k}{\text{CV}_{Ci}^2}/k} {n_{C}} - 2r_{TC}\frac{(\sum_{i=1}^{k}{\text{CV}_{Ti}^2}/k) (\sum_{i=1}^{k}{\text{CV}_{Ci}^2}/k)}{\sqrt{n_T n_C}},
+$$
+
+
+
+
