@@ -46,7 +46,7 @@ library(GGally)
 # also, the correlated samples - MS should put formulas of what we used and assumptions
 # averaged 
 # TODO - a note for Patrice - there was a msitake in this so all results could change
-lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.8){
+lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
   lnRR <- log(Me/Mc) + 
         0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
   

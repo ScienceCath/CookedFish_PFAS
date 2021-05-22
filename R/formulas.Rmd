@@ -2,7 +2,9 @@
 title: "formulas"
 author: "Shinichi Nakagawa"
 date: "17/05/2021"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 
