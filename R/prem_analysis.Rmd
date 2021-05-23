@@ -548,16 +548,16 @@ summary(full_model_org_units)
 res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
 res_mean_values
 
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$dfs) # Marginalised mean at the mean value of each predictor in the full model
+emmeans(res_mean_values, specs = ~1, df = full_model_org_units$ddf) # Marginalised mean at the mean value of each predictor in the full model
 # When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
 
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$dfs, weights="prop") # Setting proportional weights returns similar results
+emmeans(res_mean_values, specs = ~1, df = full_model_org_units$ddf, weights="prop") # Setting proportional weights returns similar results
 ```
 
 ## Marginalised means for different cooking categories
 
 ```{r}
-emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$dfs)
+emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$ddf)
 ```
 
 ## Marginalised means for pre-determined cooking times
@@ -572,13 +572,13 @@ res_cooking_time
 ### Marginalised mean estimate at each cooking time
 
 ```{r}
-emmeans(res_cooking_time , specs = ~1 |  Length_cooking_time_in_s, df = full_model_org_units$dfs) 
+emmeans(res_cooking_time , specs = ~1 |  Length_cooking_time_in_s, df = full_model_org_units$ddf) 
 ```
 
 ### Marginalised mean estimate for each cooking category, at each cooking time
 
 ```{r}
-emmeans(res_cooking_time , specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = full_model_org_units$dfs) 
+emmeans(res_cooking_time , specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = full_model_org_units$ddf) 
 ```
 
 ## Marginalised means for different volumes of liquid
@@ -589,7 +589,7 @@ Here, we generate marginalised estimates at volumes of liquid of ~10, 500, 1000,
 res_volume <- qdrg(object = full_model_org_units, data = dat, at = list(log_Volume_liquid_ml= c(2.3, 6.2, 6.9, 8.5, 9.2)))
 res_volume 
 
-emmeans(res_volume , specs = ~ 1 |  log_Volume_liquid_ml, df = full_model_org_units$dfs) 
+emmeans(res_volume , specs = ~ 1 |  log_Volume_liquid_ml, df = full_model_org_units$ddf) 
 ```
 
 ## Marginalised means for different PFAS carbon chains
@@ -605,18 +605,18 @@ res_PFAS
 ### Marginalised mean estimate for each PFAS carbon chain
 
 ```{r}
-emmeans(res_PFAS, specs = ~ 1 |  PFAS_carbon_chain, df = full_model_org_units$dfs) 
+emmeans(res_PFAS, specs = ~ 1 |  PFAS_carbon_chain, df = full_model_org_units$ddf) 
 ```
 
 ### Marginalised mean estimate for each PFAS carbon chain, for each cooking category 
 
 ```{r}
-emmeans(res_PFAS, specs = ~ Cooking_Category |  PFAS_carbon_chain, df = full_model_org_units$dfs) 
+emmeans(res_PFAS, specs = ~ Cooking_Category |  PFAS_carbon_chain, df = full_model_org_units$ddf) 
 ```
 ##
 
 
-# **Subset analyses for each cooking category** {.tabset .tabset_fade .tabset_pills} 
+# **Sub-group analyses for each cooking category** {.tabset .tabset_fade .tabset_pills} 
 
 Here, we investigated whether the effect of the continuous moderators on lnRR vary depending on the cooking category. Hence, we performed subset analyses for each cooking category. 
 
@@ -1190,6 +1190,8 @@ summary(pub_year)
 
 plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
 
+#TODO - we need to fit yea as well as N and just marginalizing function
+
 ```
 ##
 
@@ -1676,7 +1678,6 @@ pred_dry_PFAS.sens<-left_join(dry_dat.sens, pred_dry_PFAS.sens, by="PFAS_carbon_
 
 
 
-
 ggplot(dat.sens,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
   
     
@@ -1713,6 +1714,7 @@ ggplot(dat.sens,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
 #### Funnel plot 
 
 ```{r, fig.width=8, fig.height=7}
+#TODO - do this for the full model (probably not with year or effective sample size)
 funnel(mod.sens, yaxis="seinv")
 ```
 
