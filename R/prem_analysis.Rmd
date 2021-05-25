@@ -278,7 +278,8 @@ i2_ml(MA_model)
 ```{r}
 run_model<-function(data,formula){
   data<-as.data.frame(data) # convert data set into a data frame to calculate VCV matrix 
-  VCV<-make_VCV_matrix(data, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
+  VCV<-make_VCV_matrix(data
+                       , V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
   
   rma.mv(lnRR, VCV, # run the model, as described earlier
          mods=formula,
@@ -552,6 +553,9 @@ emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalise
 # When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
 
 emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
+
+
+
 ```
 
 ## Marginalised means for different cooking categories
@@ -565,8 +569,14 @@ emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$d
 Here, we generate estimates at cooking times of 2, 5, 10, 15, 20 and 25 min. 
 
 ```{r}
-res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200, 1500)))
+res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200))) #1500)))
 res_cooking_time 
+
+test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(100, 600, 1200)), by = "Length_cooking_time_in_s")
+ 
+ orchard_plot(test, xlab = "lnRR", mod = "Cooking_Category")
+
+
 ```
 
 ### Marginalised mean estimate at each cooking time
