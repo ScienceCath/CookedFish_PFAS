@@ -554,44 +554,50 @@ emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalise
 
 emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
 
-
-
+# TODO
+overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600, 1500)), by = "Length_cooking_time_in_s")
+ 
+orchard_plot(overall, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+# probably use log10???
+overall2 <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+ 
+orchard_plot(overall2, xlab = "lnRR", condition.lab = "log(liquid volume) (ml)")
 ```
 
-## Marginalised means for different cooking categories
+## Marginal means for different cooking categories
 
 ```{r}
 emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$df)
 ```
 
-## Marginalised means for pre-determined cooking times
+## Marginal means for pre-determined cooking times
 
 Here, we generate estimates at cooking times of 2, 5, 10, 15, 20 and 25 min. 
 
 ```{r}
-res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200))) #1500)))
+res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200, 1500)))
 res_cooking_time 
 
-test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(100, 600, 1200)), by = "Length_cooking_time_in_s")
+test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
  
- orchard_plot(test, xlab = "lnRR", mod = "Cooking_Category")
+orchard_plot(test, xlab = "lnRR", condition.lab  = "log(liquid volume) (ml)")
 
 
 ```
 
-### Marginalised mean estimate at each cooking time
+### Marginal mean estimate at each cooking time
 
 ```{r}
 emmeans(res_cooking_time , specs = ~1 |  Length_cooking_time_in_s, df = full_model_org_units$df) 
 ```
 
-### Marginalised mean estimate for each cooking category, at each cooking time
+### Marginal mean estimate for each cooking category, at each cooking time
 
 ```{r}
 emmeans(res_cooking_time , specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = full_model_org_units$df) 
 ```
 
-## Marginalised means for different volumes of liquid
+## Marginal means for different volumes of liquid
 
 Here, we generate marginalised estimates at volumes of liquid of ~10, 500, 1000, 5000 and 10000 mL. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
 
@@ -602,7 +608,7 @@ res_volume
 emmeans(res_volume , specs = ~ 1 |  log_Volume_liquid_ml, df = full_model_org_units$df) 
 ```
 
-## Marginalised means for different PFAS carbon chains
+## Marginal means for different PFAS carbon chains
 
 Here, we generate marginalized estimates for PFAS of 3, 6, 9 and 12 carbon chains
 
