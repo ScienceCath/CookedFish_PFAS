@@ -18,7 +18,9 @@ knitr::opts_chunk$set(
 )
 
 # this needs to be installed from github
-#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "")  # Note that the installation may not work if the folder is synchronising with OneDrive
+#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "")  # Note that the installation may not work if the folder is synchronizing with OneDrive
+#devtools::install_github("daniel1noble/orchaRd", force = TRUE, build_vignettes = TRUE)
+#devtools::install_github("daniel1noble/metaAidR")
 ```
 
 
@@ -30,14 +32,14 @@ For more details, see *Doncaster and Spake (2018) Correction for bias in meta-an
 library(tidyverse)
 library(googlesheets4)
 library(here)
-library(metafor)
-library(metaAidR)
+library(metafor) 
+library(metaAidR) # see a note above
 library(orchaRd)
 library(ape)
 library(clubSandwich)
 library(metaAidR)
 library(patchwork)
-library(emmeans)
+library(emmeans) # see a note above
 library(kableExtra)
 library(GGally)
 
@@ -338,6 +340,8 @@ All continuous variables were z-transformed
 ### Cooking category 
 
 ```{r, fig.width=9, fig.height=6}
+#TODO Patice - in the paper - we introduce the result in this order so please rearrange - ) thermal processing or cooking time, 2) cooking liquid volume (or the amount of liquid, used for cooking), 3) cooking temperature, 4) the number of carbon chains in PFAS and 5) cooking categories 
+
 # Cooking_Category
 
 category_model<-run_model(dat, ~Cooking_Category-1)
@@ -360,6 +364,7 @@ orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR", alpha=0.4)
 ```
 
 ### PFAS carbon chain length 
+
 
 ```{r, fig.width=10, fig.height=7}
 # PFAS_carbon_chain
@@ -423,6 +428,8 @@ plot_continuous(dat.volume, volume_model, log(dat.volume$Volume_liquid_ml), "Vol
 ### Percentage of moisture loss
 
 ```{r, fig.width=10, fig.height=7}
+# TODO - this is not written in the manuscript yet - chat with Patrice - may leave just for suppl??
+
 # Moisture_loss_in_percent
 
 moisture_model<-run_model(dat, ~scale(Moisture_loss_in_percent))
@@ -489,6 +496,57 @@ summary(full_model)
 r2_ml(full_model)
 
 save(full_model, file = here("Rdata", "full_model.RData"))
+
+
+full_modelb <- run_model(dat, ~ 1 +
+                               Cooking_Category +
+                               scale(Temperature_in_Celsius) +
+                               scale(Length_cooking_time_in_s) +
+                               scale(PFAS_carbon_chain) +
+                               scale(log(Volume_liquid_ml)))
+summary(full_modelb)
+
+full_modelc <- run_model(dat, ~ 1 +
+                               relevel(factor(Cooking_Category),ref =  "oil-based") +
+                               scale(Temperature_in_Celsius) +
+                               scale(Length_cooking_time_in_s) +
+                               scale(PFAS_carbon_chain) +
+                               scale(log(Volume_liquid_ml)))
+summary(full_modelc)
+
+
+full_modelc <- run_model(dat, ~ 1 +
+                               relevel(factor(Cooking_Category),ref =  "oil-based") +
+                               scale(Temperature_in_Celsius) +
+                               scale(Length_cooking_time_in_s) +
+                               scale(PFAS_carbon_chain) +
+                               scale(log(Volume_liquid_ml)))
+summary(full_modelc)
+
+
+VCV<-make_VCV_matrix(dat
+                       , V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix
+
+# testing cooking categories  
+full_modeld  <- rma.mv(yi = lnRR, V = VCV, # run the model, as described earlier
+                         mods= ~-1 +
+                               Cooking_Category +
+                               scale(Temperature_in_Celsius) +
+                               scale(Length_cooking_time_in_s) +
+                               scale(PFAS_carbon_chain) +
+                               scale(log(Volume_liquid_ml)),
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree), 
+         test = "t", 
+         data = dat,
+         btt = c(1:3))
+
+summary(full_modeld)
+
 ```
 
 ### Check collinearity of predictors 
@@ -555,13 +613,13 @@ emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalise
 emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
 
 # TODO
-overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600, 1500)), by = "Length_cooking_time_in_s")
+overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
 orchard_plot(overall, xlab = "lnRR", condition.lab = "Cooking time (sec)")
 # probably use log10???
 overall2 <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
  
-orchard_plot(overall2, xlab = "lnRR", condition.lab = "log(liquid volume) (ml)")
+orchard_plot(overall2, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
 ```
 
 ## Marginal means for different cooking categories
@@ -575,12 +633,14 @@ emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$d
 Here, we generate estimates at cooking times of 2, 5, 10, 15, 20 and 25 min. 
 
 ```{r}
-res_cooking_time <- qdrg(object = full_model_org_units, data = dat, at = list(Length_cooking_time_in_s = c(120, 300, 600, 900, 1200, 1500)))
-res_cooking_time 
-
-test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+res_cooking_time <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-orchard_plot(test, xlab = "lnRR", condition.lab  = "log(liquid volume) (ml)")
+orchard_plot(res_cooking_time, xlab = "lnRR", condition.lab  = "Cooking time (sec)")
+
+# this is less meaningfull - as no liquid goup has just 0 liquid
+#test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+ 
+#orchard_plot(test, xlab = "lnRR", condition.lab  = "log(liquid volume) (ml)")
 
 
 ```
@@ -714,6 +774,8 @@ run_model_water<-function(data,formula){
 ### Full model 
 
 ```{r}
+
+#TODO - probalby remove Temp there is no varation here
 full_model_water <- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
                                            scale(Length_cooking_time_in_s) +
                                            scale(PFAS_carbon_chain) +
@@ -1177,11 +1239,14 @@ ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
 
 ```{r}
 funnel(full_model, yaxis = "seinv")
+funnel(full_model)
 ```
 
 ## Egger regressions 
 
 ```{r}
+
+
 egger_all <- run_model(dat, ~ - 1 + Cooking_Category +
                       I(sqrt(1/N_tilde)) + 
                       scale(Publication_year) + 
@@ -1190,6 +1255,10 @@ egger_all <- run_model(dat, ~ - 1 + Cooking_Category +
                       scale(PFAS_carbon_chain) +
                       scale(log(Volume_liquid_ml)))
 summary(egger_all)
+
+
+funnel(egger_all, yaxis = "seinv")
+funnel(egger_all)
 
 #funnel(egger_all, yaxis = "seinv")
 # little evidence
@@ -1207,6 +1276,24 @@ summary(pub_year)
 plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
 
 #TODO - we need to fit yea as well as N and just marginalizing function
+
+
+res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
+res_mean_values
+
+emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalised mean at the mean value of each predictor in the full model
+# When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
+
+emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
+
+# TODO
+overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+ 
+orchard_plot(overall, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+# probably use log10???
+overall2 <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+ 
+orchard_plot(overall2, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
 
 ```
 ##
