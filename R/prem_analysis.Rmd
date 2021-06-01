@@ -543,7 +543,7 @@ full_modeld  <- rma.mv(yi = lnRR, V = VCV, # run the model, as described earlier
          R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = dat,
-         btt = c(1:3))
+         btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficents) 
 
 summary(full_modeld)
 
@@ -776,7 +776,7 @@ run_model_water<-function(data,formula){
 ```{r}
 
 #TODO - probalby remove Temp there is no varation here
-full_model_water <- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+full_model_water <- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) + # we said we did not test in our method - as there is no variation in this moderator
                                            scale(Length_cooking_time_in_s) +
                                            scale(PFAS_carbon_chain) +
                                            scale(log(Volume_liquid_ml)))
@@ -1246,9 +1246,9 @@ funnel(full_model)
 
 ```{r}
 
-
+# TODO use this model to create plots for pubication bias as well as time lag
 egger_all <- run_model(dat, ~ - 1 + Cooking_Category +
-                      I(sqrt(1/N_tilde)) + 
+                      I(sqrt(1/N_tilde)) +  
                       scale(Publication_year) + 
                       scale(Temperature_in_Celsius) +
                       scale(Length_cooking_time_in_s) +
@@ -1274,9 +1274,6 @@ pub_year<-run_model(dat, ~Publication_year)
 summary(pub_year)
 
 plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
-
-#TODO - we need to fit yea as well as N and just marginalizing function
-
 
 res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
 res_mean_values
