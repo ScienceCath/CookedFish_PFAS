@@ -1006,6 +1006,9 @@ water_dat_vol<-mutate(water_dat_vol,
                     ci.lb = pred_water_vol$ci.lb, 
                     ci.ub = pred_water_vol$ci.ub, 
                     fit = pred_water_vol$pred) 
+
+oil_dat$log_Volume_liquid_ml<-log(oil_dat$Volume_liquid_ml)
+water_dat$log_Volume_liquid_ml<-log(water_dat$Volume_liquid_ml)
 ```
 
 
@@ -1855,14 +1858,13 @@ pred_uni_model_time<-left_join(dat, pred_uni_model_time, by="Length_cooking_time
 
 p_time<-ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR)) +
   
-       geom_ribbon(data=pred_full_model_time, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_full_model_time,aes(y = pred), size = 1.5, color="black")+  
+       geom_ribbon(data=pred_full_model_time, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_full_model_time,aes(y = pred), size = 1.5, color="orangered2")+  
   
-       geom_ribbon(data=pred_uni_model_time, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_uni_model_time,aes(y = pred), size = 1.5, col="black", lty="dashed")+  
+       geom_ribbon(data=pred_uni_model_time, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
+       geom_line(data=pred_uni_model_time,aes(y = pred), size = 1.5, col="gray30")+  
   
-       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
-       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
   
   
        labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
@@ -1870,12 +1872,7 @@ p_time<-ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR)) +
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
-          legend.text=element_text(size=14),
-          legend.position=c(0,0), 
-          legend.justification = c(0,0),
-          legend.background = element_blank(), 
-          legend.direction="horizontal",
-          legend.title = element_text(size=15), 
+          legend.position="none",
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
 
@@ -1907,14 +1904,13 @@ pred_uni_model_vol<- pred_uni_model_vol %>% mutate(Volume_liquid_ml = exp(X.log_
 
 p_vol<-ggplot(dat,aes(x = log_Volume_liquid_ml, y = lnRR)) +
   
-       geom_ribbon(data=pred_full_model_vol, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_full_model_vol,aes(y = pred), size = 1.5, color="black")+  
+       geom_ribbon(data=pred_full_model_vol, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_full_model_vol,aes(y = pred), size = 1.5, color="orangered2")+  
   
-       geom_ribbon(data=pred_uni_model_vol, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_uni_model_vol,aes(y = pred), size = 1.5, col="black", lty="dashed")+  
+       geom_ribbon(data=pred_uni_model_vol, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
+       geom_line(data=pred_uni_model_vol,aes(y = pred), size = 1.5, col="gray30")+  
   
-       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
-       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
   
   
        labs(x = "ln[Volume of liquid (mL)]", y = "lnRR", size = "Precison (1/SE)") + 
@@ -1922,12 +1918,7 @@ p_vol<-ggplot(dat,aes(x = log_Volume_liquid_ml, y = lnRR)) +
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
-          legend.text=element_text(size=14),
-          legend.position=c(0,0), 
-          legend.justification = c(0,0),
-          legend.background = element_blank(), 
-          legend.direction="horizontal",
-          legend.title = element_text(size=15), 
+          legend.position="none", 
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
 
@@ -1958,14 +1949,13 @@ pred_uni_model_temp<-left_join(dat, pred_uni_model_temp, by="Temperature_in_Cels
 
 p_temp<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR)) +
   
-       geom_ribbon(data=pred_full_model_temp, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_full_model_temp,aes(y = pred), size = 1.5, color="black")+  
+       geom_ribbon(data=pred_full_model_temp, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_full_model_temp,aes(y = pred), size = 1.5, color="orangered2")+  
   
-       geom_ribbon(data=pred_uni_model_temp, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_uni_model_temp,aes(y = pred), size = 1.5, col="black", lty="dashed")+  
+       geom_ribbon(data=pred_uni_model_temp, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
+       geom_line(data=pred_uni_model_temp,aes(y = pred), size = 1.5, col="gray30")+  
   
-       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
-       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
   
   
        labs(x = "Cooking temperature (°C)", y = "lnRR", size = "Precison (1/SE)") + 
@@ -1974,10 +1964,10 @@ p_temp<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR)) +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
           legend.text=element_text(size=14),
-          legend.position=c(0,0), 
-          legend.justification = c(0,0),
+          legend.position=c(1,0), 
+          legend.justification = c(1,0),
           legend.background = element_blank(), 
-          legend.direction="horizontal",
+          legend.direction="vertical",
           legend.title = element_text(size=15), 
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
@@ -2010,14 +2000,13 @@ pred_uni_model_PFAS<-left_join(dat, pred_uni_model_PFAS, by="PFAS_carbon_chain")
 
 p_PFAS<-ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR)) +
   
-       geom_ribbon(data=pred_full_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_full_model_PFAS,aes(y = pred), size = 1.5, color="black")+  
+       geom_ribbon(data=pred_full_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_full_model_PFAS,aes(y = pred), size = 1.5, color="orangered2")+  
   
-       geom_ribbon(data=pred_uni_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color=NULL), alpha = 0.2) +
-       geom_line(data=pred_uni_model_PFAS,aes(y = pred), size = 1.5, col="black", lty="dashed")+  
+       geom_ribbon(data=pred_uni_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
+       geom_line(data=pred_uni_model_PFAS,aes(y = pred), size = 1.5, col="gray30")+  
   
-       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
-       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
   
   
        labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
@@ -2025,22 +2014,531 @@ p_PFAS<-ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR)) +
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
-          legend.text=element_text(size=14),
-          legend.position=c(0,0), 
-          legend.justification = c(0,0),
-          legend.background = element_blank(), 
-          legend.direction="horizontal",
-          legend.title = element_text(size=15), 
+          legend.position="none",
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
 ### Combine plots and save
 
 ```{r, fig.width=15, fig.height=12}
-(p_time+p_vol)/(p_temp+p_PFAS)
+(p_time+p_vol)/(p_temp+p_PFAS) + plot_annotation(tag_levels=c('A', 'B', 'C', 'D'))
+
+ggsave("fig/Fig_2.png", width=15, height=12, dpi=1200)
+```
+
+## Figure 3 
+
+### Adapt orchard_plot function 
+
+```{r}
+my_orchard<-function (object, mod = "Int", xlab, N = "none", 
+    alpha = 0.5, angle = 90, cb = FALSE, k = TRUE, transfm = c("none", 
+        "tanh"), condition.lab = "Condition") 
+{
+    transfm <- match.arg(transfm)
+    if (any(class(object) %in% c("rma.mv", "rma"))) {
+        if (mod != "Int") {
+            object <- mod_results(object, mod)
+        }
+        else {
+            object <- mod_results(object, mod = "Int")
+        }
+    }
+    mod_table <- object$mod_table
+    data <- object$data
+    data$moderator <- factor(data$moderator, levels = mod_table$name, 
+        labels = mod_table$name)
+    data$scale <- (1/sqrt(data[, "vi"]))
+    legend <- "Precision (1/SE)"
+    if (any(N != "none")) {
+        data$scale <- N
+        legend <- "Sample Size (N)"
+    }
+    if (transfm == "tanh") {
+        cols <- sapply(mod_table, is.numeric)
+        mod_table[, cols] <- Zr_to_r(mod_table[, cols])
+        data$yi <- Zr_to_r(data$yi)
+        label <- xlab
+    }
+    else {
+        label <- xlab
+    }
+    mod_table$K <- as.vector(by(data, data[, "moderator"], 
+        function(x) length(x[, "yi"])))
+    group_no <- length(unique(mod_table[, "name"]))
+    cbpl <- c("#55C667FF", "goldenrod2", "dodgerblue3") # change colors
+    if (names(mod_table)[2] == "condition") {
+        condition_no <- length(unique(mod_table[, "condition"]))
+        plot <- ggplot2::ggplot() + ggbeeswarm::geom_quasirandom(data = data, 
+            ggplot2::aes(y = yi, x = moderator, size = scale, 
+                colour = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
+            linetype = 2, colour = "black", alpha = alpha) + 
+            ggplot2::geom_linerange(data = mod_table, ggplot2::aes(x = name, 
+                ymin = lowerPR, ymax = upperPR), size = 0.75, # change size confidence intervals and swap CL with PR
+                position = ggplot2::position_dodge2(width = 0.3)) + 
+            ggplot2::geom_pointrange(data = mod_table, ggplot2::aes(y = estimate, 
+                x = name, ymin = lowerCL, ymax = upperCL, shape = as.factor(condition), # swap CL with PR
+                fill = name), size = 2, stroke=1.2,position = ggplot2::position_dodge2(width = 0.3)) + # change size point and prediction intervals
+            ggplot2::scale_shape_manual(values = 20 + (1:condition_no)) + 
+            ggplot2::coord_flip() + ggplot2::theme_bw() + ggplot2::guides(fill = "none", 
+            colour = "none") + ggplot2::theme(legend.position = c(0, 
+            1), legend.justification = c(0, 1)) + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
+            ggplot2::theme(legend.direction = "horizontal") + 
+            ggplot2::theme(legend.background = ggplot2::element_blank()) + 
+            ggplot2::labs(y = label, x = "", size = legend) + 
+            ggplot2::labs(shape = condition.lab) + ggplot2::theme(axis.text.y = ggplot2::element_text(size = 10, 
+            colour = "black", hjust = 0.5, angle = angle))
+        plot <- plot + ggplot2::annotate("text", y = (max(data$yi) + 
+            (max(data$yi) * 0.1)), x = (seq(1, group_no, 1) + 
+            0.3), label = paste("italic(k)==", mod_table$K[1:group_no]), 
+            parse = TRUE, hjust = "right", size = 3.5)
+    }
+    else {
+        plot <- ggplot2::ggplot(data = mod_table, ggplot2::aes(x = estimate, 
+            y = name)) + ggbeeswarm::geom_quasirandom(data = data, 
+            ggplot2::aes(x = yi, y = moderator, size = scale, 
+                colour = moderator), groupOnX = FALSE, alpha = alpha) + 
+            ggplot2::geom_errorbarh(ggplot2::aes(xmin = lowerPR, 
+                xmax = upperPR), height = 0, show.legend = FALSE, # change error barrs
+                size = 0.75, alpha = 0.5) + ggplot2::geom_errorbarh(ggplot2::aes(xmin = lowerCL, 
+            xmax = upperCL), height = 0.1, show.legend = FALSE, 
+            size = 1.75) + ggplot2::geom_vline(xintercept = 0, 
+            linetype = 2, colour = "black", alpha = alpha) + 
+            ggplot2::geom_point(ggplot2::aes(fill = name), size = 8,  # change point size
+                shape = 21) + ggplot2::theme_bw() + ggplot2::guides(fill = "none", 
+            colour = "none") + ggplot2::theme(legend.position = c(1, 
+            0), legend.justification = c(1, 0)) + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
+            ggplot2::theme(legend.direction = "horizontal") + 
+            ggplot2::theme(legend.background = ggplot2::element_blank()) + 
+            ggplot2::labs(x = label, y = "", size = legend) + 
+            ggplot2::theme(axis.text.y = ggplot2::element_text(size = 10, 
+                colour = "black", hjust = 0.5, angle = angle))
+        if (k == TRUE) {
+            plot <- plot + ggplot2::annotate("text", x = (max(data$yi) + 
+                (max(data$yi) * 0.1)), y = (seq(1, group_no, 
+                1) + 0.3), label = paste("italic(k)==", 
+                mod_table$K), parse = TRUE, hjust = "right", 
+                size = 3.5)
+        }
+    }
+    if (cb == TRUE) {
+        plot <- plot + ggplot2::scale_fill_manual(values = cbpl) + 
+            ggplot2::scale_colour_manual(values = cbpl)
+    }
+    return(plot)
+}
+```
+
+### Run full models in original units
+
+```{r}
+full_model_org_units <- run_model(dat, ~ - 1 + 
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log_Volume_liquid_ml)
+```
+
+
+### Figure 3A
+
+Estimates at cooking times of 2, 10 and 25 min
+```{r, fig.height=5, fig.width=7}
+time_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+ 
+p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.4)+
+           scale_size_continuous(range = c(1, 10))+
+           scale_fill_manual(values="sienna2")+
+           scale_colour_manual(values = "sienna2")+ # change colours
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 13),
+                 legend.text = element_text(size = 10),
+                 legend.position = c(0,0.28))
+```
+
+#### Figure 3B
+
+Estimates at volumes of liquid of ~10, 500, and 10000 mL
+```{r, fig.height=5, fig.width=7}
+volume_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
+ 
+p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))", alpha=0.4)+
+           scale_size_continuous(range = c(1, 10))+
+           scale_fill_manual(values="deepskyblue2")+
+           scale_colour_manual(values = "deepskyblue3")+ # change colours
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 13),
+                 legend.text = element_text(size = 10),
+                 legend.position = c(0,0.28))
+```
+
+
+
+### Figure 3C 
+
+
+Estimates at cooking times of 2, 10 and 25 min
+
+```{r, fig.height=10, fig.width=8}
+
+time_mm_cat <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+ 
+p_time_mm_cat<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.4)+
+           scale_size_continuous(range = c(1, 10))+
+           scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+           scale_colour_manual(values = c("#55C667FF", "goldenrod2", "dodgerblue3"))+ # change colours
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 13),
+                 legend.text = element_text(size = 10),
+                 legend.position = c(0,0.12))
+```
+
+### Combine plots and save
+
+```{r, fig.height=10, fig.width=14}
+((p_time_mm/p_volume_mm)|p_time_mm_cat) + plot_annotation(tag_levels=c("A", "B", "C"))
+
+ggsave("fig/Fig_3.png", width=14, height=10, dpi=1200)
+```
+
+
+## Figure 4
+
+### Figure 4A 
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_time<- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_oil_time<-predict.rma(full_model_oil_time, addx=TRUE, newmods=cbind(0,c(120:1500), 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_oil_time<-as.data.frame(pred_oil_time)
+pred_oil_time$Length_cooking_time_in_s=pred_oil_time$X.Length_cooking_time_in_s
+pred_oil_time<-left_join(oil_dat, pred_oil_time, by="Length_cooking_time_in_s")
+
+
+##### Water based
+full_model_water_time<- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_water_time<-predict.rma(full_model_water_time, addx=TRUE, newmods=cbind(c(120:1500), 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_time<-as.data.frame(pred_water_time)
+pred_water_time$Length_cooking_time_in_s=pred_water_time$X.Length_cooking_time_in_s
+pred_water_time<-left_join(water_dat, pred_water_time, by="Length_cooking_time_in_s")
+
+##### No liquid 
+
+full_model_dry_time<- run_model_dry(dry_dat, ~ Length_cooking_time_in_s)
+
+pred_dry_time<-predict.rma(full_model_dry_time, addx=TRUE) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_dry_time<-as.data.frame(pred_dry_time)
+pred_dry_time$Length_cooking_time_in_s=pred_dry_time$X.Length_cooking_time_in_s
+pred_dry_time<-left_join(dry_dat, pred_dry_time, by="Length_cooking_time_in_s")
+
+
+
+
+p_4A<-ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=pred_water_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_time,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=pred_oil_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_oil_time,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+        geom_ribbon(data=pred_dry_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_time,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position="none",
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+### Figure 4B 
+
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_vol<- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           scale(PFAS_carbon_chain) +
+                                           log_Volume_liquid_ml)
+pred_oil_vol<-predict.rma(full_model_oil_vol, addx=TRUE, newmods=cbind(0,0,0, c(log(5):log(750))))# Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+
+pred_oil_vol<-as.data.frame(pred_oil_vol)
+pred_oil_vol<-pred_oil_vol %>% mutate(Volume_liquid_ml=exp(X.log_Volume_liquid_ml), Cooking_Category="oil-based", lnRR=0) # for the plot to work, we need to add a column with cooking category and a column with lnRR
+
+
+##### Water based 
+
+full_model_water_vol<- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           scale(PFAS_carbon_chain) +
+                                           log_Volume_liquid_ml)
+
+pred_water_vol<-predict.rma(full_model_water_vol, addx=TRUE, newmods=cbind(0,0, c(log(250):log(59777))))# Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+
+pred_water_vol<-as.data.frame(pred_water_vol)
+pred_water_vol<-pred_water_vol %>% mutate(Volume_liquid_ml=exp(X.log_Volume_liquid_ml), Cooking_Category="water-based", lnRR=0)
+
+
+
+p_4B<- ggplot(dat,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=pred_water_vol, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_vol,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=pred_oil_vol, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_vol,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF","goldenrod2", "dodgerblue3"))+
+       labs(x = "ln(Volume of liquid (mL))", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), 
+          legend.text=element_text(size=14),
+          legend.position="none",
+          panel.border=element_rect(colour="black", fill=NA, size=1.2)) #### The line doesn't go all the way down for water-based because the highest values are not included in the full model
+
+```
+
+
+### Figure 4C 
+
+```{r, fig.height=8, fig.width=10}
+p_4C<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR, fill=Cooking_Category)) +
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "Cooking temperature (°C)", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(1,0), 
+          legend.justification = c(1,0),
+          legend.background = element_blank(), 
+          legend.direction="vertical",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+
+### Figure 4D 
+
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_PFAS<- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Volume_liquid_ml)))
+pred_oil_PFAS<-predict.rma(full_model_oil_PFAS, addx=TRUE, newmods=cbind(0,0, c(3:14),0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of PFAS carbon chain
+pred_oil_PFAS<-as.data.frame(pred_oil_PFAS)
+pred_oil_PFAS$PFAS_carbon_chain=pred_oil_PFAS$X.PFAS_carbon_chain
+pred_oil_PFAS<-left_join(oil_dat, pred_oil_PFAS, by="PFAS_carbon_chain")
+
+
+##### Water based
+full_model_water_PFAS<- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Volume_liquid_ml)))
+
+pred_water_PFAS<-predict.rma(full_model_water_PFAS, addx=TRUE, newmods=cbind(0, c(3:14),0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_PFAS<-as.data.frame(pred_water_PFAS)
+pred_water_PFAS$PFAS_carbon_chain=pred_water_PFAS$X.PFAS_carbon_chain
+pred_water_PFAS<-left_join(water_dat, pred_water_PFAS, by="PFAS_carbon_chain")
+
+##### No liquid 
+
+full_model_dry_PFAS<- run_model_dry(dry_dat, ~ PFAS_carbon_chain)
+
+pred_dry_PFAS<-predict.rma(full_model_dry_PFAS, addx=TRUE)
+pred_dry_PFAS<-as.data.frame(pred_dry_PFAS)
+pred_dry_PFAS$PFAS_carbon_chain=pred_dry_PFAS$X.PFAS_carbon_chain
+pred_dry_PFAS<-left_join(dry_dat, pred_dry_PFAS, by="PFAS_carbon_chain")
+
+
+
+
+p_4D<-ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
+  
+    
+       geom_ribbon(data=pred_dry_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_PFAS,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_ribbon(data=pred_water_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_PFAS,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+  
+       geom_ribbon(data=pred_oil_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_PFAS,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position="none",
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+
+### Combine and save
+```{r, fig.width=15, fig.height=12}
+
+(p_4A+p_4B)/(p_4C+p_4D)+ plot_annotation(tag_levels=c("A", "B", "C", "D"))
+
+ggsave("fig/Fig_4.png", width=15, height=12, dpi=1200)
 ```
 
 
 
 
+## Figure 5 
+
+### Figure 5A 
+
+```{r, fig.width=9, fig.height=7}
+dat$Study_ID<- as.factor(dat$Study_ID)
+
+p_5A<-funnel(full_model, 
+      yaxis="seinv", # Inverse of standard error (precision) as the y axis
+      level = c(90, 95, 99),  # levels of statistical significance highlighted 
+      shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
+      legend = TRUE, # display legend
+      ylab="Precision (1/SE)", 
+      cex.lab=1.75, 
+      digits=1, 
+      ylim=c(1,1.2),
+      cex=2,
+      pch=21,
+      col=dat$Study_ID)
+```
+
+### Figure 5B 
+
+```{r, fig.width=9, fig.height=7}
+full_model_egger <- run_model(dat, ~ - 1 +
+                      I(sqrt(1/N_tilde)) +  
+                      scale(Publication_year) + 
+                      scale(Temperature_in_Celsius) +
+                      scale(Length_cooking_time_in_s) +
+                      scale(PFAS_carbon_chain) +
+                      scale(log(Volume_liquid_ml))) # Model to get predictions
+
+
+pred_egger<-predict.rma(full_model_egger, addx=TRUE, newmods=cbind(c(0.1825742:1.414214),0,0,0 ,0, 0)) 
+pred_egger<-as.data.frame(pred_egger)
+pred_egger$SE_eff_N=pred_egger$X.I.sqrt.1.N_tilde..
+pred_egger<- pred_egger %>% mutate(N_tilde = ((1/X.I.sqrt.1.N_tilde..)^2), lnRR = 0) 
+
+p_5B<-ggplot(dat,aes(x = sqrt(1/N_tilde), y = lnRR)) +
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
+       geom_ribbon(data=pred_egger, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_egger,aes(y = pred), size = 1.5, color="orangered2")+  
+
+       labs(x = "Standard error", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.position="none",
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+
+### Figure 5C 
+
+
+```{r, fig.width=9, fig.height=7}
+dat$Publication_year=as.integer(dat$Publication_year)
+
+full_model_pub <- run_model(dat, ~ - 1 +
+                      scale(I(sqrt(1/N_tilde))) +  
+                      Publication_year + 
+                      scale(Temperature_in_Celsius) +
+                      scale(Length_cooking_time_in_s) +
+                      scale(PFAS_carbon_chain) +
+                      scale(log(Volume_liquid_ml))) # Model to get predictions
+
+
+pred_pub<-predict.rma(full_model_pub, addx=TRUE, newmods=cbind(0,c(2008:2020),0,0 ,0, 0)) 
+pred_pub<-as.data.frame(pred_pub)
+pred_pub$Publication_year=pred_pub$X.Publication_year
+pred_pub<-left_join(dat, pred_pub, by="Publication_year")
+
+
+
+p_5C<-ggplot(dat,aes(x = Publication_year, y = lnRR)) +
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
+       geom_ribbon(data=pred_pub, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
+       geom_line(data=pred_pub,aes(y = pred), size = 1.5, color="orangered2")+  
+
+       labs(x = "Publication_year", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.position="none",
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+### Combine and save
+
+```{r, fig.height=8, fig.width=7}
+funnel(full_model, 
+      yaxis="seinv", # Inverse of standard error (precision) as the y axis
+      level = c(90, 95, 99),  # levels of statistical significance highlighted 
+      shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
+      legend = TRUE, # display legend
+      ylab="Precision (1/SE)", 
+      cex.lab=1.75, 
+      digits=1, 
+      ylim=c(1,1.2),
+      cex=2,
+      pch=21,
+      col=dat$Study_ID) 
+
+png("fig/Fig_5A.png", height=8, width=7, units="in", res=1200)
+plot(funell)
+dev.off()
+```
+
+
+```{r, fig.width=10, fig.height=8}
+(p_5B+ p_5C)
+
+ggsave("fig/Fig_5BC.png", width=15, height=12, dpi=1200)
+```
 
 
