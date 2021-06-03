@@ -34,7 +34,7 @@ library(googlesheets4)
 library(here)
 library(metafor) 
 library(metaAidR) # see a note above
-library(orchaRd)
+library(orchaRd) # see a note above
 library(ape)
 library(clubSandwich)
 library(metaAidR)
@@ -44,17 +44,13 @@ library(kableExtra)
 library(GGally)
 library(cowplot)
 
-# custom functions - here
-# this is to get small sample size corrected lnRR
-# also, the correlated samples - MS should put formulas of what we used and assumptions
-# averaged 
-# TODO - a note for Patrice - there was a msitake in this so all results could change
+# Below is the custom function to calculate the lnRR 
 lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
   lnRR <- log(Me/Mc) + 
         0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
   
   var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) - 
-         2*rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc)) # there was some mistake - Nc = Ne = always hold
+         2*rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc)) 
   
   data.frame(lnRR,var_lnRR)
 }
@@ -92,13 +88,12 @@ write.csv(processed_data, here("data", "pilot_data_preprocessed.csv"), row.names
 ```{r}
 processed_data <- read_csv(here("data", "pilot_data_preprocessed.csv")) 
 
-processed_data
-
-# creating SD for just biological
-# not quite sure why if_else does not work but ifesle does (handling NA???)
-
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
-                                     SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
+                                 SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
+
+
+
+kable(dat, "html") %>% kable_styling("striped", position = "left") %>% scroll_box(width = "100%", height = "500px")
 ```
 
 
@@ -248,7 +243,7 @@ i2_ml(MA_model) # Percentage of heterogeneity explained by each random effect
 # plot
 orchard_plot(MA_model, mod = "Int", xlab = "lnRR", alpha=0.4) +  # Orchard plot 
            geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
-           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = FALSE, size = 2)+ # confidence intervals
+           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0.05, show.legend = FALSE, size = 2)+ # confidence intervals
            geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
            scale_colour_manual(values = "darkorange")+ # change colours
            scale_fill_manual(values="darkorange")+ 
@@ -338,11 +333,70 @@ ggplot(aes(x = moderator, y = lnRR)) +
 
 All continuous variables were z-transformed
 
+### Cooking time 
+
+```{r, fig.width=10, fig.height=7}
+# Length_cooking_time_in_s
+
+time_model<-run_model(dat, ~scale(Length_cooking_time_in_s)) # z-transformed
+  
+summary(time_model)
+r2_ml(time_model)
+
+# Plot
+dat.time<-filter(dat, Length_cooking_time_in_s!="NA")
+plot_continuous(dat.time, time_model, dat.time$Length_cooking_time_in_s, "Cooking time (s)")
+```
+
+### Volume of liquid 
+
+```{r, fig.width=10, fig.height=7}
+# Volume_liquid_ml
+
+volume_model<-run_model(dat, ~scale(log(Volume_liquid_ml))) # logged and z-transformed
+  
+summary(volume_model)
+r2_ml(volume_model)
+
+# Plot
+dat.volume<-filter(dat, Volume_liquid_ml!="NA")
+plot_continuous(dat.volume, volume_model, log(dat.volume$Volume_liquid_ml), "Volume of liquid (mL)")
+```
+
+
+### Cooking temperature 
+
+```{r, fig.width=10, fig.height=7}
+# Temperature_in_Celsius
+
+temp_model<-run_model(dat, ~scale(Temperature_in_Celsius)) # z-transformed 
+  
+summary(temp_model)
+r2_ml(temp_model)
+
+# Plot
+dat.temp<-filter(dat, Temperature_in_Celsius!="NA")
+plot_continuous(dat.temp, temp_model, dat.temp$Temperature_in_Celsius, "Cooking temperature")
+```
+
+### PFAS carbon chain length 
+
+```{r, fig.width=10, fig.height=7}
+# PFAS_carbon_chain
+
+PFAS_model<-run_model(dat, ~PFAS_carbon_chain)
+  
+summary(PFAS_model)
+r2_ml(PFAS_model)
+
+plot_continuous(dat, PFAS_model, dat$PFAS_carbon_chain, "PFAS carbon chain length")
+
+```
+
+
 ### Cooking category 
 
 ```{r, fig.width=9, fig.height=6}
-#TODO Patice - in the paper - we introduce the result in this order so please rearrange - ) thermal processing or cooking time, 2) cooking liquid volume (or the amount of liquid, used for cooking), 3) cooking temperature, 4) the number of carbon chains in PFAS and 5) cooking categories 
-
 # Cooking_Category
 
 category_model<-run_model(dat, ~Cooking_Category-1)
@@ -364,73 +418,11 @@ orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR", alpha=0.4)
                  legend.text = element_text(size = 13))
 ```
 
-### PFAS carbon chain length 
-
-
-```{r, fig.width=10, fig.height=7}
-# PFAS_carbon_chain
-
-PFAS_model<-run_model(dat, ~PFAS_carbon_chain)
-  
-summary(PFAS_model)
-r2_ml(PFAS_model)
-
-plot_continuous(dat, PFAS_model, dat$PFAS_carbon_chain, "PFAS carbon chain length")
-
-```
-
-### Cooking temperature 
-
-```{r, fig.width=10, fig.height=7}
-# Temperature_in_Celsius
-
-temp_model<-run_model(dat, ~scale(Temperature_in_Celsius)) # z-transformed 
-  
-summary(temp_model)
-r2_ml(temp_model)
-
-# Plot
-dat.temp<-filter(dat, Temperature_in_Celsius!="NA")
-plot_continuous(dat.temp, temp_model, dat.temp$Temperature_in_Celsius, "Cooking temperature")
-```
-
-### Cooking time 
-
-```{r, fig.width=10, fig.height=7}
-# Length_cooking_time_in_s
-
-time_model<-run_model(dat, ~scale(Length_cooking_time_in_s)) # z-transformed
-  
-summary(time_model)
-r2_ml(time_model)
-
-# Plot
-dat.time<-filter(dat, Length_cooking_time_in_s!="NA")
-plot_continuous(dat.time, time_model, dat.time$Length_cooking_time_in_s, "Cooking time (s)")
-```
-
-
-### Volume of liquid 
-
-```{r, fig.width=10, fig.height=7}
-# Volume_liquid_ml
-
-volume_model<-run_model(dat, ~scale(log(Volume_liquid_ml))) # logged and z-transformed
-  
-summary(volume_model)
-r2_ml(volume_model)
-
-# Plot
-dat.volume<-filter(dat, Volume_liquid_ml!="NA")
-plot_continuous(dat.volume, volume_model, log(dat.volume$Volume_liquid_ml), "Volume of liquid (mL)")
-```
-
 
 ### Percentage of moisture loss
 
+This analysis is *a posteriori* and will only be presented in supplement. 
 ```{r, fig.width=10, fig.height=7}
-# TODO - this is not written in the manuscript yet - chat with Patrice - may leave just for suppl??
-
 # Moisture_loss_in_percent
 
 moisture_model<-run_model(dat, ~scale(Moisture_loss_in_percent))
@@ -452,18 +444,6 @@ save(category_model, PFAS_model, temp_model, time_model, volume_model, moisture_
 ```{r, include= FALSE}
 load(here("Rdata", "single_mod_models.RData")) # Load the output of the models to avoid running them 
 
-# Cooking category
-summary(category_model)
-r2_ml(category_model)
-
-# PFAS carbon chain length
-summary(PFAS_model)
-r2_ml(PFAS_model)
-
-# Cooking temperature
-summary(temp_model)
-r2_ml(temp_model)
-
 # Cooking time
 summary(time_model)
 r2_ml(time_model)
@@ -471,6 +451,18 @@ r2_ml(time_model)
 # Volume of liquid
 summary(volume_model)
 r2_ml(volume_model)
+
+# Cooking temperature
+summary(temp_model)
+r2_ml(temp_model)
+
+# PFAS carbon chain length
+summary(PFAS_model)
+r2_ml(PFAS_model)
+
+# Cooking category
+summary(category_model)
+r2_ml(category_model)
 
 # Percentage of moisture loss
 summary(moisture_model)
@@ -496,40 +488,27 @@ full_model <- run_model(dat, ~ - 1 +
 summary(full_model)
 r2_ml(full_model)
 
-save(full_model, file = here("Rdata", "full_model.RData"))
-
 
 full_modelb <- run_model(dat, ~ 1 +
-                               Cooking_Category +
+                               relevel(factor(Cooking_Category),ref =  "oil-based") +
                                scale(Temperature_in_Celsius) +
                                scale(Length_cooking_time_in_s) +
                                scale(PFAS_carbon_chain) +
                                scale(log(Volume_liquid_ml)))
 summary(full_modelb)
 
+
 full_modelc <- run_model(dat, ~ 1 +
-                               relevel(factor(Cooking_Category),ref =  "oil-based") +
+                               relevel(factor(Cooking_Category),ref =  "No liquid") +
                                scale(Temperature_in_Celsius) +
                                scale(Length_cooking_time_in_s) +
                                scale(PFAS_carbon_chain) +
                                scale(log(Volume_liquid_ml)))
 summary(full_modelc)
 
-
-full_modelc <- run_model(dat, ~ 1 +
-                               relevel(factor(Cooking_Category),ref =  "oil-based") +
-                               scale(Temperature_in_Celsius) +
-                               scale(Length_cooking_time_in_s) +
-                               scale(PFAS_carbon_chain) +
-                               scale(log(Volume_liquid_ml)))
-summary(full_modelc)
-
-
-VCV<-make_VCV_matrix(dat
-                       , V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix
 
 # testing cooking categories  
-full_modeld  <- rma.mv(yi = lnRR, V = VCV, # run the model, as described earlier
+full_modeld  <- rma.mv(yi = lnRR, V = VCV_lnRR, # run the model, as described earlier
                          mods= ~-1 +
                                Cooking_Category +
                                scale(Temperature_in_Celsius) +
@@ -544,9 +523,12 @@ full_modeld  <- rma.mv(yi = lnRR, V = VCV, # run the model, as described earlier
          R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = dat,
-         btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficents) 
+         btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficients) 
 
 summary(full_modeld)
+
+
+save(full_model,full_modelb,full_modelc,full_modeld, file = here("Rdata", "full_model.RData"))
 
 ```
 
@@ -567,6 +549,13 @@ dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_cha
 load(here("Rdata", "full_model.RData")) # Load the output of the full model to avoid running it
 
 summary(full_model)
+
+summary(full_modelb)
+
+summary(full_modelc)
+
+summary(full_modeld)
+
 ```
 
 
@@ -757,9 +746,7 @@ run_model_water<-function(data,formula){
 ### Full model 
 
 ```{r}
-
-#TODO - probalby remove Temp there is no varation here
-full_model_water <- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) + # we said we did not test in our method - as there is no variation in this moderator
+full_model_water <- run_model_water(water_dat, ~
                                            scale(Length_cooking_time_in_s) +
                                            scale(PFAS_carbon_chain) +
                                            scale(log(Volume_liquid_ml)))
@@ -788,7 +775,7 @@ cor_tree_dry <- cor_tree[include, include] # Only include the species that match
 
 run_model_dry<-function(data,formula){
   data<-as.data.frame(data) # convert data set into a data frame to calculate VCV matrix 
-  rma.mv(lnRR, var_lnRR, # run the model with var_lnRR instead of lnCVR
+  rma.mv(lnRR, var_lnRR, # run the model with var_lnRR instead of VCV
          mods=formula,
          random = list(~1|Study_ID,
                        ~1|Phylogeny, 
@@ -806,7 +793,7 @@ run_model_dry<-function(data,formula){
 
 
 ```{r}
-full_model_dry <- run_model_dry(dry_dat, ~ scale(Length_cooking_time_in_s)) # Nodel does not converge with VCV_lnRR
+full_model_dry <- run_model_dry(dry_dat, ~ scale(Length_cooking_time_in_s)) # Model does not converge with VCV_lnRR
                  
 summary(full_model_dry)
 
@@ -1231,8 +1218,6 @@ funnel(full_model)
 ## Egger regressions 
 
 ```{r}
-
-# TODO use this model to create plots for pubication bias as well as time lag
 egger_all <- run_model(dat, ~ - 1 + Cooking_Category +
                       I(sqrt(1/N_tilde)) +  
                       scale(Publication_year) + 
@@ -1260,29 +1245,11 @@ pub_year<-run_model(dat, ~Publication_year)
 summary(pub_year)
 
 plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
-
-res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
-res_mean_values
-
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalised mean at the mean value of each predictor in the full model
-# When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
-
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
-
-# TODO
-overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
- 
-orchard_plot(overall, xlab = "lnRR", condition.lab = "Cooking time (sec)")
-# probably use log10???
-overall2 <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
- 
-orchard_plot(overall2, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
-
 ```
 ##
 
 
- # **Sensitivity analyses**
+# **Sensitivity analyses**
  
 ## Leave-one-out analyses 
  
@@ -1800,8 +1767,14 @@ ggplot(dat.sens,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
 #### Funnel plot 
 
 ```{r, fig.width=8, fig.height=7}
-#TODO - do this for the full model (probably not with year or effective sample size)
-funnel(mod.sens, yaxis="seinv")
+full_mod.sens<-run_model(dat.sens, ~ -1 +  Cooking_Category  + 
+                                scale(Temperature_in_Celsius) + 
+                                scale(Length_cooking_time_in_s) + 
+                                scale(PFAS_carbon_chain) + 
+                                scale(log(Volume_liquid_ml)))
+
+
+funnel(full_mod.sens, yaxis="seinv")
 ```
 
 
@@ -1812,7 +1785,9 @@ funnel(mod.sens, yaxis="seinv")
 
 
 ## Figure 2 
-
+run_model(dat, ~-1 + Cooking_Category + I(sqrt(1/N_tilde)) + scale(Publication_year) + 
+    scale(Temperature_in_Celsius) + scale(Length_cooking_time_in_s) + scale(PFAS_carbon_chain) + 
+    scale(log(Volume_liquid_ml)))
 
 ### Cooking time
 
