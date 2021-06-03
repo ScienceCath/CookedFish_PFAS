@@ -42,6 +42,7 @@ library(patchwork)
 library(emmeans) # see a note above
 library(kableExtra)
 library(GGally)
+library(cowplot)
 
 # custom functions - here
 # this is to get small sample size corrected lnRR
@@ -604,90 +605,72 @@ summary(full_model_org_units)
 ## Overall marginalised mean 
 
 ```{r}
-res_mean_values <- qdrg(object = full_model_org_units, data = dat) # Generate an grid of marginal means at the mean of each predictor variable
-res_mean_values
-
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df) # Marginalised mean at the mean value of each predictor in the full model
-# When all predictors at set to their mean level, the mean effect size is -0.556 (42.7% decrease in PFAS content in experimental vs. control samples)
-
-emmeans(res_mean_values, specs = ~1, df = full_model_org_units$df, weights="prop") # Setting proportional weights returns similar results
-
-# TODO
-overall <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
- 
-orchard_plot(overall, xlab = "lnRR", condition.lab = "Cooking time (sec)")
-# probably use log10???
-overall2 <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
- 
-orchard_plot(overall2, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
+res<-marginal_means(full_model_org_units, data=dat, mod="1")
+res$mod_table
 ```
 
 ## Marginal means for different cooking categories
 
-```{r}
-emmeans(res_mean_values, specs = "Cooking_Category", df = full_model_org_units$df)
+```{r, fig.width=10, fig.height=7}
+res_cat<-marginal_means(full_model_org_units, data = dat, mod = "1", by = "Cooking_Category")
+res_cat$mod_table
+
+orchard_plot(res_cat, xlab = "lnRR", condition.lab = "Cooking Category" )
 ```
 
 ## Marginal means for pre-determined cooking times
 
-Here, we generate estimates at cooking times of 2, 5, 10, 15, 20 and 25 min. 
+Here, we generate estimates at cooking times of 2, 10, and 25 min. 
 
-```{r}
-res_cooking_time <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
- 
-orchard_plot(res_cooking_time, xlab = "lnRR", condition.lab  = "Cooking time (sec)")
+```{r, fig.width=10, fig.height=7}
+res_cooking_time <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time$mod_table
 
-# this is less meaningfull - as no liquid goup has just 0 liquid
-#test <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
- 
-#orchard_plot(test, xlab = "lnRR", condition.lab  = "log(liquid volume) (ml)")
-
+orchard_plot(res_cooking_time, xlab = "lnRR", condition.lab = "Cooking time (sec)")
 
 ```
 
-### Marginal mean estimate at each cooking time
+Marginalised means for each cooking category, at different cooking times
 
-```{r}
-emmeans(res_cooking_time , specs = ~1 |  Length_cooking_time_in_s, df = full_model_org_units$df) 
+```{r, fig.width=10, fig.height=7}
+res_cooking_time_cat <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time_cat$mod_table
+
+orchard_plot(res_cooking_time_cat, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+
 ```
 
-### Marginal mean estimate for each cooking category, at each cooking time
 
-```{r}
-emmeans(res_cooking_time , specs = ~ Cooking_Category |  Length_cooking_time_in_s, df = full_model_org_units$df) 
-```
 
 ## Marginal means for different volumes of liquid
 
-Here, we generate marginalised estimates at volumes of liquid of ~10, 500, 1000, 5000 and 10000 mL. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
+Here, we generate marginalised estimates at volumes of liquid of ~10, 500, and 10000 mL. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
 
-```{r}
-res_volume <- qdrg(object = full_model_org_units, data = dat, at = list(log_Volume_liquid_ml= c(2.3, 6.2, 6.9, 8.5, 9.2)))
-res_volume 
+```{r, fig.width=10, fig.height=7}
+res_volume<-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+res_volume$mod_table
 
-emmeans(res_volume , specs = ~ 1 |  log_Volume_liquid_ml, df = full_model_org_units$df) 
+orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
 ```
 
 ## Marginal means for different PFAS carbon chains
 
-Here, we generate marginalized estimates for PFAS of 3, 6, 9 and 12 carbon chains
+Here, we generate marginalized estimates for PFAS of 3, 6, and 12 carbon chains
 
-```{r}
-res_PFAS <- qdrg(object = full_model_org_units, data = dat, at = list(PFAS_carbon_chain= c(3, 6, 9, 12)))
-res_PFAS 
+```{r, fig.width=10, fig.height=7}
+res_PFAS<-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS$mod_table
+
+orchard_plot(res_PFAS, xlab = "lnRR", condition.lab = "PFAS carbon chain")
 ```
 
+ Marginalised mean estimate for each PFAS carbon chain, for each cooking category 
 
-### Marginalised mean estimate for each PFAS carbon chain
+```{r, fig.width=10, fig.height=7}
+res_PFAS_cat<-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS_cat$mod_table
 
-```{r}
-emmeans(res_PFAS, specs = ~ 1 |  PFAS_carbon_chain, df = full_model_org_units$df) 
-```
-
-### Marginalised mean estimate for each PFAS carbon chain, for each cooking category 
-
-```{r}
-emmeans(res_PFAS, specs = ~ Cooking_Category |  PFAS_carbon_chain, df = full_model_org_units$df) 
+orchard_plot(res_PFAS_cat, xlab = "lnRR", condition.lab = "PFAS carbon chain")
 ```
 ##
 
@@ -2320,7 +2303,22 @@ p_4B<- ggplot(dat,aes(x = log(Volume_liquid_ml), y = lnRR, fill=Cooking_Category
 ### Figure 4C 
 
 ```{r, fig.height=8, fig.width=10}
+
+full_model_oil_temp<- run_model_oil(oil_dat, ~ Temperature_in_Celsius +
+                                           scale(Length_cooking_time_in_s)+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Volume_liquid_ml)))
+pred_oil_temp<-predict.rma(full_model_oil_temp, addx=TRUE, newmods=cbind(c(75:300),0, 0,0)) 
+pred_oil_temp<-as.data.frame(pred_oil_temp)
+pred_oil_temp$Temperature_in_Celsius=pred_oil_temp$X.Temperature_in_Celsius
+pred_oil_temp<-left_join(oil_dat, pred_oil_temp, by="Temperature_in_Celsius")
+
+
+
 p_4C<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR, fill=Cooking_Category)) +
+    
+       geom_ribbon(data=pred_oil_temp, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_temp,aes(y = pred), size = 1.5, col="goldenrod")+  
   
        geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
        scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
@@ -2420,7 +2418,7 @@ ggsave("fig/Fig_4.png", width=15, height=12, dpi=1200)
 
 ### Figure 5A 
 
-```{r, fig.width=9, fig.height=7}
+```{r, fig.width=7, fig.height=9}
 dat$Study_ID<- as.factor(dat$Study_ID)
 
 funnel(full_model, 
@@ -2435,6 +2433,20 @@ funnel(full_model,
       cex=2,
       pch=21,
       col=dat$Study_ID)
+
+p_5A <-funnel(full_model, 
+      yaxis="seinv", # Inverse of standard error (precision) as the y axis
+      level = c(90, 95, 99),  # levels of statistical significance highlighted 
+      shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
+      legend = TRUE, # display legend
+      ylab="Precision (1/SE)", 
+      cex.lab=1.75, 
+      digits=1, 
+      ylim=c(1,1.2),
+      cex=2,
+      pch=21,
+      col=dat$Study_ID)
+
 ```
 
 ### Figure 5B 
@@ -2514,10 +2526,10 @@ p_5C<-ggplot(dat,aes(x = Publication_year, y = lnRR)) +
 
 For some reason I cannot save the funnel plot. This will be manually copied from the Rmd
 
-```{r, fig.width=10, fig.height=7}
-(p_5B+ p_5C)
+```{r, fig.width=18, fig.height=7}
+(ggdraw(p_5A) + ggdraw(p_5B) + ggdraw(p_5C))
 
-ggsave("fig/Fig_5BC.png", width=10, height=7, dpi=1200)
+ggsave("fig/Fig_5BC.png", width=18, height=7, dpi=1200)
 ```
 
 
