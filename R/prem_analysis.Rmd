@@ -1858,14 +1858,13 @@ pred_uni_model_time<-left_join(dat, pred_uni_model_time, by="Length_cooking_time
 
 p_time<-ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR)) +
   
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
        geom_ribbon(data=pred_full_model_time, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
        geom_line(data=pred_full_model_time,aes(y = pred), size = 1.5, color="orangered2")+  
   
        geom_ribbon(data=pred_uni_model_time, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
        geom_line(data=pred_uni_model_time,aes(y = pred), size = 1.5, col="gray30")+  
-  
-       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
-  
   
        labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
@@ -1904,14 +1903,13 @@ pred_uni_model_vol<- pred_uni_model_vol %>% mutate(Volume_liquid_ml = exp(X.log_
 
 p_vol<-ggplot(dat,aes(x = log_Volume_liquid_ml, y = lnRR)) +
   
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
        geom_ribbon(data=pred_full_model_vol, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
        geom_line(data=pred_full_model_vol,aes(y = pred), size = 1.5, color="orangered2")+  
   
        geom_ribbon(data=pred_uni_model_vol, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
        geom_line(data=pred_uni_model_vol,aes(y = pred), size = 1.5, col="gray30")+  
-  
-       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
-  
   
        labs(x = "ln[Volume of liquid (mL)]", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
@@ -1949,14 +1947,13 @@ pred_uni_model_temp<-left_join(dat, pred_uni_model_temp, by="Temperature_in_Cels
 
 p_temp<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR)) +
   
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
        geom_ribbon(data=pred_full_model_temp, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
        geom_line(data=pred_full_model_temp,aes(y = pred), size = 1.5, color="orangered2")+  
   
        geom_ribbon(data=pred_uni_model_temp, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
        geom_line(data=pred_uni_model_temp,aes(y = pred), size = 1.5, col="gray30")+  
-  
-       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
-  
   
        labs(x = "Cooking temperature (°C)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
@@ -2000,14 +1997,13 @@ pred_uni_model_PFAS<-left_join(dat, pred_uni_model_PFAS, by="PFAS_carbon_chain")
 
 p_PFAS<-ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR)) +
   
+       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
+  
        geom_ribbon(data=pred_full_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
        geom_line(data=pred_full_model_PFAS,aes(y = pred), size = 1.5, color="orangered2")+  
   
        geom_ribbon(data=pred_uni_model_PFAS, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
        geom_line(data=pred_uni_model_PFAS,aes(y = pred), size = 1.5, col="gray30")+  
-  
-       geom_point(aes(size=(1/sqrt(var_lnRR))), shape=21, alpha=0.8, fill="gray75") +
-  
   
        labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
@@ -2070,14 +2066,14 @@ my_orchard<-function (object, mod = "Int", xlab, N = "none",
         condition_no <- length(unique(mod_table[, "condition"]))
         plot <- ggplot2::ggplot() + ggbeeswarm::geom_quasirandom(data = data, 
             ggplot2::aes(y = yi, x = moderator, size = scale, 
-                colour = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
+                color = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
             linetype = 2, colour = "black", alpha = alpha) + 
             ggplot2::geom_linerange(data = mod_table, ggplot2::aes(x = name, 
-                ymin = lowerPR, ymax = upperPR), size = 0.75, # change size confidence intervals and swap CL with PR
+                ymin = lowerPR, ymax = upperPR), size = 0.75, # change size confidence intervals and swap CL with PR. Added whiskers
                 position = ggplot2::position_dodge2(width = 0.3)) + 
             ggplot2::geom_pointrange(data = mod_table, ggplot2::aes(y = estimate, 
                 x = name, ymin = lowerCL, ymax = upperCL, shape = as.factor(condition), # swap CL with PR
-                fill = name), size = 2, stroke=1.2,position = ggplot2::position_dodge2(width = 0.3)) + # change size point and prediction intervals
+                fill = name), size = 1.6, stroke=2.2, width= 1.3, position = ggplot2::position_dodge2(width = 0.3)) + # change size point and prediction intervals
             ggplot2::scale_shape_manual(values = 20 + (1:condition_no)) + 
             ggplot2::coord_flip() + ggplot2::theme_bw() + ggplot2::guides(fill = "none", 
             colour = "none") + ggplot2::theme(legend.position = c(0, 
@@ -2146,7 +2142,7 @@ Estimates at cooking times of 2, 10 and 25 min
 ```{r, fig.height=5, fig.width=7}
 time_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.4)+
+p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="sienna2")+
            scale_colour_manual(values = "sienna2")+ # change colours
@@ -2163,10 +2159,10 @@ Estimates at volumes of liquid of ~10, 500, and 10000 mL
 ```{r, fig.height=5, fig.width=7}
 volume_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
  
-p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))", alpha=0.4)+
+p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (mL))", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="deepskyblue2")+
-           scale_colour_manual(values = "deepskyblue3")+ # change colours
+           scale_colour_manual(values = "deepskyblue2")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
@@ -2185,7 +2181,7 @@ Estimates at cooking times of 2, 10 and 25 min
 
 time_mm_cat <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm_cat<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.4)+
+p_time_mm_cat<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
            scale_colour_manual(values = c("#55C667FF", "goldenrod2", "dodgerblue3"))+ # change colours
@@ -2427,7 +2423,7 @@ ggsave("fig/Fig_4.png", width=15, height=12, dpi=1200)
 ```{r, fig.width=9, fig.height=7}
 dat$Study_ID<- as.factor(dat$Study_ID)
 
-p_5A<-funnel(full_model, 
+funnel(full_model, 
       yaxis="seinv", # Inverse of standard error (precision) as the y axis
       level = c(90, 95, 99),  # levels of statistical significance highlighted 
       shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
@@ -2471,7 +2467,8 @@ p_5B<-ggplot(dat,aes(x = sqrt(1/N_tilde), y = lnRR)) +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
           legend.position="none",
-          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))+
+  xlim(0.18,1.19)
 ```
 
 
@@ -2479,8 +2476,6 @@ p_5B<-ggplot(dat,aes(x = sqrt(1/N_tilde), y = lnRR)) +
 
 
 ```{r, fig.width=9, fig.height=7}
-dat$Publication_year=as.integer(dat$Publication_year)
-
 full_model_pub <- run_model(dat, ~ - 1 +
                       scale(I(sqrt(1/N_tilde))) +  
                       Publication_year + 
@@ -2504,41 +2499,25 @@ p_5C<-ggplot(dat,aes(x = Publication_year, y = lnRR)) +
        geom_ribbon(data=pred_pub, aes(ymin = ci.lb, ymax = ci.ub), alpha = 0.25, fill="orangered") +
        geom_line(data=pred_pub,aes(y = pred), size = 1.5, color="orangered2")+  
 
-       labs(x = "Publication_year", y = "lnRR", size = "Precison (1/SE)") + 
+       labs(x = "Publication year", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
   theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
           legend.position="none",
-          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))  +
+   scale_x_continuous(breaks=c(2008, 2010, 2012, 2014, 2016, 2018 ,2020))
+
 ```
 
 ### Combine and save
 
-```{r, fig.height=8, fig.width=7}
-funnel(full_model, 
-      yaxis="seinv", # Inverse of standard error (precision) as the y axis
-      level = c(90, 95, 99),  # levels of statistical significance highlighted 
-      shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
-      legend = TRUE, # display legend
-      ylab="Precision (1/SE)", 
-      cex.lab=1.75, 
-      digits=1, 
-      ylim=c(1,1.2),
-      cex=2,
-      pch=21,
-      col=dat$Study_ID) 
+For some reason I cannot save the funnel plot. This will be manually copied from the Rmd
 
-png("fig/Fig_5A.png", height=8, width=7, units="in", res=1200)
-plot(funell)
-dev.off()
-```
-
-
-```{r, fig.width=10, fig.height=8}
+```{r, fig.width=10, fig.height=7}
 (p_5B+ p_5C)
 
-ggsave("fig/Fig_5BC.png", width=15, height=12, dpi=1200)
+ggsave("fig/Fig_5BC.png", width=10, height=7, dpi=1200)
 ```
 
 
