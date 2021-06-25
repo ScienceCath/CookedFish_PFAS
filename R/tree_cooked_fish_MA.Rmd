@@ -1,7 +1,7 @@
 ---
 title: "species_tree_cooked_fish_MA"
-author: "ML"
-date: "11/03/2021"
+author: "mlagisz"
+date: "25/06/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -18,14 +18,14 @@ sessionInfo()
 ```
 
 ```{r prepare, message = FALSE, echo = TRUE, eval = FALSE, warning = FALSE}
-#install.packages("tidyverse")
-#install.packages("ape")
-#install.packages("curl")
-#install.packages("fulltext")
-#install.packages("treebase")
-#install.packages("devtools")
-#devtools::install_github("ropensci/rotl", dependencies = TRUE, build_vignette=TRUE)
-#install.packages("rotl")
+# install.packages("tidyverse")
+# install.packages("ape")
+# install.packages("curl")
+# install.packages("fulltext")
+# install.packages("treebase")
+# install.packages("devtools")
+# devtools::install_github("ropensci/rotl", dependencies = TRUE, build_vignette=TRUE)
+# install.packages("rotl")
 ```
 
 ```{r load packages, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE}
@@ -107,7 +107,28 @@ Save tree
 write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
 
 # *NOTE:* underscores within species names on tree tip labels are added automatically
-# tree <- read.tree(file="plot_cooked_fish_MA.tre") #if you need to read in the tree
+# tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
+# tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
+# tree$node.label <- NULL #you can delete internal node labels
+```
+
+Plot tree
+
+```{r plot final binary tree, fig.width=10, fig.height=20, echo=TRUE, message=FALSE}
+plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
+
+#or plot to pdf
+pdf("plot_cooked_fish_MA.pdf", width=8, heigh=10)
+plot(tree2, cex=0.6, label.offset =.1, no.margin = TRUE)
+dev.off()
+
+```
+
+```{r save final tree}
+write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
+
+# *NOTE:* underscores within species names on tree tip labels are added automatically
+# tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
 # tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
 # tree$node.label <- NULL #you can delete internal node labels
 ```
@@ -125,6 +146,22 @@ dev.off()
 ```
 
 
+START HERE For the final figure
 
+```{r load tree}
+tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
+tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
+tree$node.label <- NULL #you can delete internal node labels
+#*NOTE:* underscores within species names on tree tip labels are added automatically
+```
 
+Plot tree
 
+```{r plot final binary tree, fig.width=10, fig.height=20, echo=TRUE, message=FALSE}
+plot(tree, cex=.6, label.offset =.1, no.margin = TRUE)
+
+#or plot to pdf
+pdf("fig/tree_cooked_fish_MA.pdf", width=8, heigh=16)
+plot(tree, cex=1.1, label.offset =.1, no.margin = TRUE)
+dev.off()
+```
