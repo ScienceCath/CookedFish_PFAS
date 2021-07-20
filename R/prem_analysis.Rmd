@@ -752,14 +752,31 @@ full_model_water <- run_model_water(water_dat, ~
                                            scale(log(Volume_liquid_ml)))
                  
 summary(full_model_water)
+```
 
-save(full_model_water, file = here("Rdata", "full_model_water.RData"))
+
+### Comparison between steaming and other water-based cooking categories
+
+In our data set, the studies using steaming-based cooking were considered to have an unknown (i.e. NA) because of the difficulty to assess how much liquid gets in contact with the products. 
+Here, we provide an analysis to compare steaming with other water-based cooking categories
+```{r}
+water_dat$steamed<-ifelse(water_dat$Cooking_method=="Steaming","steamed","other") # create a dummy variable to differentiate "steaming" with other types of water-based cooking
+
+full_model_water_steamed <- run_model_water(water_dat, ~
+                                           -1 + steamed +
+                                                scale(Length_cooking_time_in_s) +
+                                                scale(PFAS_carbon_chain)) # In this case, we need to remove the volume of liquid from the model. Otherwise, it would remove observations with steaming cooking. 
+
+summary(full_model_water_steamed)
+
+save(full_model_water, full_model_water_steamed, file = here("Rdata", "full_model_water.RData"))
 ```
 
 
 ```{r, include=F}
 load(here("Rdata", "full_model_water.RData"))
 summary(full_model_water)
+summary(full_model_water_steamed)
 ```
 
 
@@ -2100,8 +2117,8 @@ time_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(
  
 p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
-           scale_fill_manual(values="gray70")+
-           scale_colour_manual(values = "gray60")+ # change colours
+           scale_fill_manual(values="sienna2")+
+           scale_colour_manual(values = "sienna2")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
@@ -2117,8 +2134,8 @@ volume_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = lis
  
 p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (mL))", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
-           scale_fill_manual(values="gray70")+
-           scale_colour_manual(values = "gray60")+ # change colours
+           scale_fill_manual(values="deepskyblue2")+
+           scale_colour_manual(values = "deepskyblue2")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
