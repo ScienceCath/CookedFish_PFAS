@@ -762,14 +762,22 @@ Here, we provide an analysis to compare steaming with other water-based cooking 
 ```{r}
 water_dat$steamed<-ifelse(water_dat$Cooking_method=="Steaming","steamed","other") # create a dummy variable to differentiate "steaming" with other types of water-based cooking
 
-full_model_water_steamed <- run_model_water(water_dat, ~
-                                           -1 + steamed +
+full_model_water_steamed <- run_model_water(water_dat, ~ -1 + # without intercept
+                                                steamed +
                                                 scale(Length_cooking_time_in_s) +
                                                 scale(PFAS_carbon_chain)) # In this case, we need to remove the volume of liquid from the model. Otherwise, it would remove observations with steaming cooking. 
 
 summary(full_model_water_steamed)
 
-save(full_model_water, full_model_water_steamed, file = here("Rdata", "full_model_water.RData"))
+# Contrast between steamed and non-steamed
+full_model_water_steamed_cont <- run_model_water(water_dat,  
+                                             ~  steamed + # with intercept
+                                                scale(Length_cooking_time_in_s) +
+                                                scale(PFAS_carbon_chain)) 
+
+summary(full_model_water_steamed_cont)
+
+save(full_model_water, full_model_water_steamed, full_model_water_steamed_cont, file = here("Rdata", "full_model_water.RData"))
 ```
 
 
