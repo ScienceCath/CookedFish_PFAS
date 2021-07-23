@@ -3,7 +3,8 @@ title: "prem_analysis"
 author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Matthew Gibson, Daniel Hesselson, G. Gregory Neely, Malgorzata Lagisz, Shinichi Nakagawa "
 date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
 output: rmdformats::material
-
+editor_options: 
+  chunk_output_type: console
 ---
 # **Packages and custom functions**
 
@@ -2475,7 +2476,7 @@ p_5B<-ggplot(dat,aes(x = sqrt(1/N_tilde), y = lnRR)) +
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
-  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+  theme(text = element_text(size = 20, colour = "black", hjust = 0.5), # change font sizes and legend position
           legend.position="none",
           panel.border=element_rect(colour="black", fill=NA, size=1.2))+
   xlim(0.18,1.19)
@@ -2513,8 +2514,13 @@ p_5C<-ggplot(dat,aes(x = Publication_year, y = lnRR)) +
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
-  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
-          legend.position="none",
+  theme(text = element_text(size = 20, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(1,0), 
+          legend.justification = c(1,0),
+          legend.background = element_blank(), 
+          legend.direction="vertical",
+          legend.title = element_text(size=15), 
           panel.border=element_rect(colour="black", fill=NA, size=1.2))  +
    scale_x_continuous(breaks=c(2008, 2010, 2012, 2014, 2016, 2018 ,2020))
 
