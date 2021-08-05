@@ -571,7 +571,7 @@ Such analysis enable the quantification of the mean effect size after controllin
 ## Full model 
 
 ```{r}
-# Full model in original units (not z-transformation)
+# Full model in original units (no z-transformation)
 dat$log_Volume_liquid_ml<-log(dat$Volume_liquid_ml)
 
 full_model_org_units <- run_model(dat, ~ - 1 + 
@@ -582,13 +582,25 @@ full_model_org_units <- run_model(dat, ~ - 1 +
                                log_Volume_liquid_ml)
 
 
-save(full_model, file = here("Rdata", "full_model_org_units.RData"))
+# Full model in original units (no z-transformation), but without the "No liquid" data
+# This model will be used for conditional analyses on the volume of liquid, where the data without liquid is irrelevant. 
+dat_oil_water<-filter(dat, Cooking_Category!="No liquid")
+full_model_org_units_oil_water<- run_model(dat_oil_water, ~ - 1 + 
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log_Volume_liquid_ml)
+
+save(full_model_org_units,full_model_org_units_oil_water, file = here("Rdata", "full_models_org_units.RData"))
 ```
 
 ```{r, include=FALSE}
-load(here("Rdata", "full_model_org_units.RData")) # Load the output of the model to avoid running it
+load(here("Rdata", "full_models_org_units.RData")) # Load the output of the model to avoid running it
 
 summary(full_model_org_units)
+summary(full_model_org_units_oil_water)
+
 ```
 
 
@@ -637,7 +649,7 @@ orchard_plot(res_cooking_time_cat, xlab = "lnRR", condition.lab = "Cooking time 
 Here, we generate marginalised estimates at volumes of liquid of ~10, 500, and 10000 mL. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
 
 ```{r, fig.width=10, fig.height=7}
-res_volume<-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+res_volume<-marginal_means(full_model_org_units_oil_water, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
 res_volume$mod_table
 
 orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
@@ -2139,7 +2151,7 @@ p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec
 
 Estimates at volumes of liquid of ~10, 500, and 10000 mL
 ```{r, fig.height=5, fig.width=7}
-volume_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
+volume_mm <-marginal_means(full_model_org_units_oil_water, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
  
 p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (mL))", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
