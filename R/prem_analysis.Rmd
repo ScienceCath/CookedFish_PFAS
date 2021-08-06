@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 )
 
 # this needs to be installed from github
-#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "")  # Note that the installation may not work if the folder is synchronizing with OneDrive
+#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "", force=T)  # Note that the installation may not work if the folder is synchronizing with OneDrive
 #devtools::install_github("daniel1noble/orchaRd", force = TRUE, build_vignettes = TRUE)
 #devtools::install_github("daniel1noble/metaAidR")
 ```
@@ -87,7 +87,7 @@ write.csv(processed_data, here("data", "pilot_data_preprocessed.csv"), row.names
 
 ### Load processed data
 ```{r}
-processed_data <- read_csv(here("data", "pilot_data_preprocessed.csv")) 
+processed_data <- read.csv(here("data", "pilot_data_preprocessed.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
@@ -585,12 +585,14 @@ full_model_org_units <- run_model(dat, ~ - 1 +
 # Full model in original units (no z-transformation), but without the "No liquid" data
 # This model will be used for conditional analyses on the volume of liquid, where the data without liquid is irrelevant. 
 dat_oil_water<-filter(dat, Cooking_Category!="No liquid")
+
 full_model_org_units_oil_water<- run_model(dat_oil_water, ~ - 1 + 
                                Cooking_Category +
                                Temperature_in_Celsius +
                                Length_cooking_time_in_s +
                                PFAS_carbon_chain +
                                log_Volume_liquid_ml)
+
 
 save(full_model_org_units,full_model_org_units_oil_water, file = here("Rdata", "full_models_org_units.RData"))
 ```
@@ -600,7 +602,6 @@ load(here("Rdata", "full_models_org_units.RData")) # Load the output of the mode
 
 summary(full_model_org_units)
 summary(full_model_org_units_oil_water)
-
 ```
 
 
@@ -647,9 +648,10 @@ orchard_plot(res_cooking_time_cat, xlab = "lnRR", condition.lab = "Cooking time 
 ## Marginal means for different volumes of liquid
 
 Here, we generate marginalised estimates at volumes of liquid of ~10, 500, and 10000 mL. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
+We also only used the data on oil and water because the "No liquid" category is not relevant for this analysis. 
 
 ```{r, fig.width=10, fig.height=7}
-res_volume<-marginal_means(full_model_org_units_oil_water, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
+res_volume<-marginal_means(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", at = list(log_Volume_liquid_ml = c(2.3, 5.5, 9.2)), by = "log_Volume_liquid_ml")
 res_volume$mod_table
 
 orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(liquid volume (ml))")
@@ -1821,9 +1823,12 @@ funnel(full_mod.sens, yaxis="seinv")
 
 
 ## Figure 2 
+
+```{r}
 run_model(dat, ~-1 + Cooking_Category + I(sqrt(1/N_tilde)) + scale(Publication_year) + 
     scale(Temperature_in_Celsius) + scale(Length_cooking_time_in_s) + scale(PFAS_carbon_chain) + 
     scale(log(Volume_liquid_ml)))
+```
 
 ### Cooking time
 
@@ -2009,7 +2014,7 @@ p_PFAS<-ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR)) +
 ```
 ### Combine plots and save
 
-```{r, fig.width=15, fig.height=12}
+```{r, fig.width=15, fig.height=12, eval=F}
 (p_time+p_vol)/(p_temp+p_PFAS) + plot_annotation(tag_levels=c('A', 'B', 'C', 'D'))
 
 ggsave("fig/Fig_2.png", width=15, height=12, dpi=1200)
@@ -2127,6 +2132,14 @@ full_model_org_units <- run_model(dat, ~ - 1 +
                                Length_cooking_time_in_s +
                                PFAS_carbon_chain +
                                log_Volume_liquid_ml)
+
+# full model without the "No liquid" data for figure 3B. 
+full_model_org_units_oil_water <- run_model(dat_oil_water, ~ - 1 +
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log_Volume_liquid_ml)
 ```
 
 
@@ -2151,7 +2164,7 @@ p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec
 
 Estimates at volumes of liquid of ~10, 500, and 10000 mL
 ```{r, fig.height=5, fig.width=7}
-volume_mm <-marginal_means(full_model_org_units_oil_water, data = dat, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
+volume_mm <-marginal_means(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", at = list(log_Volume_liquid_ml= c(2.3, 6.2, 9.2)), by = "log_Volume_liquid_ml")
  
 p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln(liquid volume (mL))", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
