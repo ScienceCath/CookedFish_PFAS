@@ -362,6 +362,22 @@ r2_ml(volume_model)
 # Plot
 dat.volume<-filter(dat, Volume_liquid_ml!="NA")
 plot_continuous(dat.volume, volume_model, log(dat.volume$Volume_liquid_ml), "Volume of liquid (mL)")
+
+# TODO - Patrice this is a new mode
+# Volume_liquid_ml_0
+# the issue here is 0 cannot be log-transformed so adding 1
+
+volume2_model<-run_model(dat, ~scale(log(Volume_liquid_ml_0+1))) # logged and z-transformed after adding 1
+  
+summary(volume2_model)
+r2_ml(volume2_model)
+
+# Plot
+dat.volume2<-filter(dat, Volume_liquid_ml_0!="NA")
+# TODO
+# make 0 = no liquid visible???
+plot_continuous(dat.volume2, volume2_model, log(dat.volume2$Volume_liquid_ml), "Volume of liquid (mL)")
+
 ```
 
 
@@ -531,6 +547,9 @@ summary(full_modeld)
 
 save(full_model,full_modelb,full_modelc,full_modeld, file = here("Rdata", "full_model.RData"))
 
+#TODO - full models need updating 
+# use Volume_liquid_ml_0????
+
 ```
 
 ### Check collinearity of predictors 
@@ -581,7 +600,15 @@ full_model_org_units <- run_model(dat, ~ - 1 +
                                PFAS_carbon_chain +
                                log_Volume_liquid_ml)
 
+#TODO -- added
+dat$log1_Volume_liquid_ml<-log(dat$Volume_liquid_ml_0 + 1)
 
+full_model_org_units1 <- run_model(dat, ~ - 1 + 
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log1_Volume_liquid_ml)
 # Full model in original units (no z-transformation), but without the "No liquid" data
 # This model will be used for conditional analyses on the volume of liquid, where the data without liquid is irrelevant. 
 dat_oil_water<-filter(dat, Cooking_Category!="No liquid")
@@ -593,6 +620,14 @@ full_model_org_units_oil_water<- run_model(dat_oil_water, ~ - 1 +
                                PFAS_carbon_chain +
                                log_Volume_liquid_ml)
 
+
+# TODO- added
+full_model_org_units_oil_water1<- run_model(dat_oil_water, ~ - 1 + 
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log1_Volume_liquid_ml)
 
 save(full_model_org_units,full_model_org_units_oil_water, file = here("Rdata", "full_models_org_units.RData"))
 ```
@@ -608,8 +643,13 @@ summary(full_model_org_units_oil_water)
 ## Overall marginalised mean 
 
 ```{r}
-res<-marginal_means(full_model_org_units, data=dat, mod="1")
+res<-marginal_means(model = full_model_org_units, data=dat, mod="1")
 res$mod_table
+
+# TODO - added
+
+res1<-marginal_means(model = full_model_org_units1, data=dat, mod="1")
+res1$mod_table
 ```
 
 ## Marginal means for different cooking categories
@@ -619,6 +659,13 @@ res_cat<-marginal_means(full_model_org_units, data = dat, mod = "1", by = "Cooki
 res_cat$mod_table
 
 orchard_plot(res_cat, xlab = "lnRR", condition.lab = "Cooking Category" )
+
+#TODO - added
+res_cat1<-marginal_means(full_model_org_units1, data = dat, mod = "1", by = "Cooking_Category")
+res_cat1$mod_table
+
+orchard_plot(res_cat1, xlab = "lnRR", condition.lab = "Cooking Category" )
+
 ```
 
 ## Marginal means for pre-determined cooking times
