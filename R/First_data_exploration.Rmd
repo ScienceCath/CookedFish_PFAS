@@ -35,7 +35,7 @@ https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9e
 
 ```{r load pilot data, echo=FALSE}
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
-fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccccncncccccnncccnccnncncnccnnncncncccccccc") #with specifying column types
+fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccccncncccccnncccnnccnncncnccnnncncncccccccc") #with specifying column types
 dim(fishdata)
 #610  48
 names(fishdata)
@@ -740,9 +740,45 @@ table_Volume_liquid_ml_2 <- fishdata_3 %>%
 
 volume <- fishdata_3 %>% filter(!is.na(Volume_liquid_ml))
 
-mean(volume$Volume_liquid_ml)
+###Oil only
+fishdata_3_oil <- fishdata_3 %>% filter(Cooking_Category == 'oil-based')
 
-range(volume$Volume_liquid_ml)
+#View(fishdata_3_oil)
+dim(fishdata_3_oil)
+
+mean(fishdata_3_oil$Volume_liquid_ml)
+#154.297
+
+range(fishdata_3_oil$Volume_liquid_ml)
+#5 750
+
+###water only
+fishdata_3_water <- fishdata_3 %>% filter(Cooking_Category == 'water-based')
+
+dim(fishdata_3_water)
+#140  48
+
+fishdata_3_water_2 <- fishdata_3 %>% filter(Volume_liquid_ml != NA)
+dim(fishdata_3_water_2)
+
+
+#View(fishdata_3_water)
+dim(fishdata_3_water)
+
+mean(fishdata_3_water$Volume_liquid_ml)
+#154.297
+
+range(fishdata_3_water$Volume_liquid_ml)
+#5 750
+
+#####
+
+
+
+
+mean(fishdata_3$Volume_liquid_ml)
+
+range(fishdata_3$Volume_liquid_ml)
 
 table_Volume_liquid_ml %>%
   kbl() %>%
@@ -790,18 +826,18 @@ fishdata_3 %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 #Temperature_in_Celsius vs Cooking_Category
-fishdata_2 %>%
+fishdata_3 %>%
   ggplot(aes(x=Cooking_Category, y=Temperature_in_Celsius))+
   geom_point()
   
   
 #Volume_liquid_ml vs Cooking_Category
-fishdata_2 %>%
+fishdata_3 %>%
   ggplot(aes(x=Cooking_Category, y=Volume_liquid_ml))+
   geom_point()
 
 #Length_cooking_time_in_s vs Cooking_Category
-fishdata_2 %>%
+fishdata_3 %>%
   ggplot(aes(x=Cooking_Category, y=Length_cooking_time_in_s))+
   geom_point()
 
