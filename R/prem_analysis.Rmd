@@ -1,10 +1,11 @@
 ---
-title: "prem_analysis"
+title: "Does thermal processing change PFAS concentrations in edible animal products? – A systematic review and meta-analysis"
 author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Matthew Gibson, Daniel Hesselson, G. Gregory Neely, Malgorzata Lagisz, Shinichi Nakagawa "
 date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
 output: rmdformats::material
 editor_options: 
   chunk_output_type: inline
+subtitle: ""
 ---
 # **Packages and custom functions**
 
@@ -44,6 +45,7 @@ library(emmeans) # see a note above
 library(kableExtra)
 library(GGally)
 library(cowplot)
+library(grDevices) # reqired for using base and ggplots together
 
 # Below is the custom function to calculate the lnRR 
 lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
@@ -2499,19 +2501,24 @@ ggsave("fig/Fig_4.png", width=15, height=12, dpi=1200)
 ```{r, fig.width=7, fig.height=9}
 dat$Study_ID<- as.factor(dat$Study_ID)
 
-funnel(full_model, 
-      yaxis="seinv", # Inverse of standard error (precision) as the y axis
-      level = c(90, 95, 99),  # levels of statistical significance highlighted 
-      shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
-      legend = TRUE, # display legend
-      ylab="Precision (1/SE)", 
-      cex.lab=1.75, 
-      digits=1, 
-      cex=2,
-      pch=21,
-      col=dat$Study_ID)
+# funnel(full_model, 
+#       yaxis="seinv", # Inverse of standard error (precision) as the y axis
+#       level = c(90, 95, 99),  # levels of statistical significance highlighted 
+#       shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
+#       legend = TRUE, # display legend
+#       ylab="Precision (1/SE)", 
+#       cex.lab=1.75, 
+#       digits=1, 
+#       cex=2,
+#       pch=21,
+#       col=dat$Study_ID)
 
-p_5A <-funnel(full_model, 
+
+pdf(NULL)
+dev.control(displaylist="enable")
+par(mar=c(4,6,0.1,0))
+
+plot_f <- funnel(full_model, 
       yaxis="seinv", # Inverse of standard error (precision) as the y axis
       level = c(90, 95, 99),  # levels of statistical significance highlighted 
       shade = c("white", "gray75", "gray55", "gray40"), # shades for different levels of statistical significance
@@ -2524,6 +2531,8 @@ p_5A <-funnel(full_model,
       cex=2,
       pch=21,
       col=dat$Study_ID)
+p_5A <- recordPlot(plot_f)
+invisible(dev.off())
 
 ```
 
@@ -2607,14 +2616,12 @@ p_5C<-ggplot(dat,aes(x = Publication_year, y = lnRR)) +
 
 ### Combine and save
 
-For some reason I cannot save the funnel plot. This will be manually copied from the Rmd
-
 ```{r, fig.width=18, fig.height=7}
-(ggdraw(p_5A) + ggdraw(p_5B) + ggdraw(p_5C))
+(ggdraw(p_5A) + ggdraw(p_5B) + ggdraw(p_5C) + plot_annotation(tag_levels = 'A'))
 ```
 
 ```{r, eval=F}
-ggsave("fig/Fig_5BC.png", width=18, height=7, dpi=1200)
+ggsave(here("fig/Fig_5BC.png"), width=18, height=7, dpi=1200)
 
 ```
 
