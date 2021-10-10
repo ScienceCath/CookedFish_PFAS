@@ -483,39 +483,9 @@ r2_ml(moisture_model)
 
 ```{r}
 
-# Full_model 
-
-full_model <- run_model(dat, ~ - 1 + # All predictors, with individual coefficients for each cooking category
-                               Cooking_Category +
-                               scale(Temperature_in_Celsius) +
-                               scale(Length_cooking_time_in_s) +
-                               scale(PFAS_carbon_chain) +
-                               scale(log(Ratio_liquid_fish)))
-summary(full_model)
-r2_ml(full_model)
-
-
-full_modelb <- run_model(dat, ~ 1 + # All predictors, with oil-based as the reference cooking category
-                               relevel(factor(Cooking_Category),ref =  "oil-based") +
-                               scale(Temperature_in_Celsius) +
-                               scale(Length_cooking_time_in_s) +
-                               scale(PFAS_carbon_chain) +
-                               scale(log(Ratio_liquid_fish)))
-summary(full_modelb)
-
-
-full_modelc <- run_model(dat, ~ 1 + # All predictors, with No liquid as the reference cooking category
-                               relevel(factor(Cooking_Category),ref =  "No liquid") +
-                               scale(Temperature_in_Celsius) +
-                               scale(Length_cooking_time_in_s) +
-                               scale(PFAS_carbon_chain) +
-                               scale(log(Ratio_liquid_fish)))
-summary(full_modelc)
-
-
 # Testing cooking categories  
-full_modeld  <- rma.mv(yi = lnRR, V = VCV_lnRR, 
-                         mods= ~-1 +
+full_model  <- rma.mv(yi = lnRR, V = VCV_lnRR, 
+                         mods= ~1 +
                                Cooking_Category +
                                scale(Temperature_in_Celsius) +
                                scale(Length_cooking_time_in_s) +
@@ -529,12 +499,13 @@ full_modeld  <- rma.mv(yi = lnRR, V = VCV_lnRR,
          R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = dat,
-         btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficients) 
+         sparse = TRUE)
+         #btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficients) 
 
-summary(full_modeld)
+summary(full_model)
 
 
-save(full_model,full_modelb,full_modelc,full_modeld, file = here("Rdata", "full_model.RData"))
+save(full_model, file = here("Rdata", "full_model.RData"))
 ```
 
 ### Check collinearity of predictors 
@@ -554,12 +525,6 @@ dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_cha
 load(here("Rdata", "full_model.RData")) # Load the output of the full model to avoid running it
 
 summary(full_model)
-
-summary(full_modelb)
-
-summary(full_modelc)
-
-summary(full_modeld)
 
 ```
 
