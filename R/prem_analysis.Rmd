@@ -53,7 +53,7 @@ lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
         0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
   
   var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) - 
-         2*rho*(sqrt(aCV2c)*sqrt(aCV2e)/(Nc)) 
+         2 * rho * ((aCV2c*aCV2e)/sqrt(Nc*Ne)) 
   
   data.frame(lnRR,var_lnRR)
 }
@@ -141,7 +141,7 @@ effect <- lnRR_func(Mc = dat$Mc,
                     Ne = dat$Ne, 
                     aCV2c = aCV2[[1]], 
                     aCV2e = aCV2[[2]],
-                    rho = 0.8)  # Calculate effect sizes
+                    rho = 0.5)  # Calculate effect sizes
 
 dat <- dat %>% 
              mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) # Calculate the effective sample size
@@ -220,7 +220,8 @@ MA_all_rand_effects <- rma.mv(lnRR, VCV_lnRR, # Add `VCV_lnRR` to account for co
                             ~1|Effect_ID), # Effect size identity 
               R= list(Phylogeny = cor_tree), # Assign the 'Phylogeny' argument to the phylogenetic variance-covariance matrix
               test = "t", 
-              data = dat)
+              data = dat,
+              sparse = TRUE)
 
 summary(MA_all_rand_effects) # Cohort ID does not explain any variance 
 
@@ -238,10 +239,11 @@ MA_model <- rma.mv(lnRR, VCV_lnRR,
                             ~1|Effect_ID), 
               R= list(Phylogeny = cor_tree), 
               test = "t", 
-              data = dat)
+              data = dat,
+               sparse = TRUE)
 
 summary(MA_model)
-i2_ml(MA_model) # Percentage of heterogeneity explained by each random effect
+round(i2_ml(MA_model)*100,2) # Percentage of heterogeneity explained by each random effect
 
 # plot
 orchard_plot(MA_model, mod = "Int", xlab = "lnRR", alpha=0.4) +  # Orchard plot 
@@ -267,7 +269,7 @@ load(here("Rdata", "int_MA_models.RData"))
 summary(MA_all_rand_effects)
 summary(MA_model)
 
-i2_ml(MA_model)
+i2_ml(MA_model) 
 
 ```
 
