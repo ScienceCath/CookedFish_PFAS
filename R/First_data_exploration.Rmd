@@ -35,7 +35,7 @@ https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9e
 
 ```{r load pilot data, echo=FALSE}
 #pdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=0", range = "Data_extraction", skip=1) #loads some of the mixed-type columns as lists
-fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccccncncccccnncccnnccnncncnccnnncncncccccccc") #with specifying column types
+fishdata <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccnccccccncncccccnncccnnnnccnncncnccnnncncncccccccc") #with specifying column types
 dim(fishdata)
 #610  48
 names(fishdata)
@@ -659,6 +659,7 @@ table_Temperature_in_Celsius_2 %>%
   kbl() %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
 ```
+
 #### Length_cooking_time_in_s
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -773,9 +774,6 @@ range(fishdata_3_water$Volume_liquid_ml)
 
 #####
 
-
-
-
 mean(fishdata_3$Volume_liquid_ml)
 
 range(fishdata_3$Volume_liquid_ml)
@@ -788,6 +786,40 @@ table_Volume_liquid_ml_2 %>%
   kbl() %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
 ```
+
+#### Ratio cooking liquid/seafood
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+unique(fishdata_3$Ratio_liquid_fish)
+
+ratio <- fishdata_3 %>% filter(!is.na(Ratio_liquid_fish))
+names(ratio)
+
+ratio_2 <- ratio[,c(21,25)]
+range(ratio_2$Ratio_liquid_fish)
+#0.00265861 45.33091568
+
+#Oil only
+ratio_oil <- ratio_2 %>% filter(Oil == 'Yes')
+
+range(ratio_oil$Ratio_liquid_fish)
+#0.00265861 30.00000000
+
+mean(ratio_oil$Ratio_liquid_fish)
+#9.828183
+
+#water only
+ratio_water <- ratio_2 %>% filter(Oil == 'No')
+
+range(ratio_water$Ratio_liquid_fish)
+#2.50000 45.33092
+
+mean(ratio_water$Ratio_liquid_fish)
+#22.87562
+
+```
+
+
 
 #### Sample sizes
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
