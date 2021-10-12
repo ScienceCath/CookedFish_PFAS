@@ -366,7 +366,27 @@ r2_ml(volume_model)
 
 # Plot
 dat.volume<-filter(dat, Ratio_liquid_fish!="NA")
-plot_continuous(dat.volume, volume_model, log(dat.volume$Ratio_liquid_fish), "ln (Tissue to liquid volume ratio)")
+plot_continuous(dat.volume, volume_model, log(dat.volume$Ratio_liquid_fish), "ln (Liquid volume to tissue sample ratio)")
+```
+
+### Ratio between tissue sample and liquid volume, with no-liquid coded as "0"
+
+```{r, fig.width=10, fig.height=7}
+# Ratio_liquid_fish with "0" for no-liquid
+
+dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid", 0, Ratio_liquid_fish)) # Add a 0 when the cooking category is "No liquid", otherwise keep the same value of Ratio_liquid_fish
+
+# arrange(select(dat, Cooking_Category, Ratio_liquid_fish, Ratio_liquid_fish_0), Cooking_Category) # Checking everything is fine
+
+
+volume0_model<-run_model(dat, ~scale(log(Ratio_liquid_fish_0+1))) # logged and z-transformed after adding 1
+  
+summary(volume0_model)
+r2_ml(volume0_model)
+
+# Plot
+dat.volume0<-filter(dat, Ratio_liquid_fish_0!="NA")
+plot_continuous(dat.volume0, volume0_model, log(dat.volume0$Ratio_liquid_fish_0+1), "ln (Liquid volume to tissue sample ratio) + 1")
 ```
 
 
@@ -443,7 +463,7 @@ plot_continuous(dat.moisture, moisture_model, dat.moisture$Moisture_loss_in_perc
 
 
 ```{r}
-save(category_model, PFAS_model, temp_model, time_model, volume_model, moisture_model, file = here("Rdata", "single_mod_models.RData")) # Save models
+save(category_model, PFAS_model, temp_model, time_model, volume_model, volume0_model, moisture_model, file = here("Rdata", "single_mod_models.RData")) # Save models
 ```
 
 
@@ -457,6 +477,10 @@ r2_ml(time_model)
 # Volume of liquid
 summary(volume_model)
 r2_ml(volume_model)
+
+# Volume of liquid, with no liquid taken as `0`
+summary(volume0_model)
+r2_ml(volume0_model)
 
 # Cooking temperature
 summary(temp_model)
@@ -481,6 +505,7 @@ r2_ml(moisture_model)
 
 ## Full model 
 
+### Full model with Ratio_liquid_fish as "NA" for the dry cooking category
 ```{r}
 
 # Testing cooking categories  
@@ -508,12 +533,41 @@ summary(full_model)
 save(full_model, file = here("Rdata", "full_model.RData"))
 ```
 
-### Check collinearity of predictors 
+### Full model with Ratio_liquid_fish as "0" for the dry cooking category
+
+```{r}
+full_model0  <- rma.mv(yi = lnRR, V = VCV_lnRR, 
+                         mods= ~1 +
+                               Cooking_Category +
+                               scale(Temperature_in_Celsius) +
+                               scale(Length_cooking_time_in_s) +
+                               scale(PFAS_carbon_chain) +
+                               scale(log(Ratio_liquid_fish_0+1)),
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree), 
+         test = "t", 
+         data = dat,
+         sparse = TRUE)
+         #btt = c(1:3)) # testing the significance of cooking category - testing first 3 regression coefficients) 
+
+summary(full_model0)
+
+
+save(full_model0, file = here("Rdata", "full_model.RData"))
+```
+
+
+#### Check collinearity of predictors 
 
 ```{r, fig.width=9}
 ## Check for collinerarity - seems fine
 
 vif(full_model)
+vif(full_model0)
 
 dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_chain, Ratio_liquid_fish) %>% 
   ggpairs() # Estimate correlations between the variables
@@ -525,7 +579,7 @@ dat %>% select(Temperature_in_Celsius, Length_cooking_time_in_s, PFAS_carbon_cha
 load(here("Rdata", "full_model.RData")) # Load the output of the full model to avoid running it
 
 summary(full_model)
-
+summary(full_model0)
 ```
 
 
@@ -550,9 +604,20 @@ full_model_org_units <- run_model(dat, ~ - 1 +
                                PFAS_carbon_chain +
                                log_Ratio_liquid_fish)
 
+# Full model in original units (no z-transformation), with Ratio_liquid_fish_0
+dat$log_Ratio_liquid_fish0<-log(dat$Ratio_liquid_fish_0 +1)
+
+full_model_org_units0 <- run_model(dat, ~ - 1 + 
+                               Cooking_Category +
+                               Temperature_in_Celsius +
+                               Length_cooking_time_in_s +
+                               PFAS_carbon_chain +
+                               log_Ratio_liquid_fish0)
+
+
 
 # Full model in original units (no z-transformation), but without the "No liquid" data
-# This model will be used for conditional analyses on the volume of liquid, where the data without liquid is irrelevant. 
+# This model will be used for conditional analyses on the volume of liquid, where the data without liquid is irrelevant 
 dat_oil_water<-filter(dat, Cooking_Category!="No liquid")
 
 full_model_org_units_oil_water<- run_model(dat_oil_water, ~ - 1 + 
@@ -562,51 +627,81 @@ full_model_org_units_oil_water<- run_model(dat_oil_water, ~ - 1 +
                                PFAS_carbon_chain +
                                log_Ratio_liquid_fish)
 
-save(full_model_org_units,full_model_org_units_oil_water, file = here("Rdata", "full_models_org_units.RData"))
+
+save(full_model_org_units, full_model_org_units0, full_model_org_units_oil_water, file = here("Rdata", "full_models_org_units.RData"))
 ```
 
 ```{r, include=FALSE}
 load(here("Rdata", "full_models_org_units.RData")) # Load the output of the model to avoid running it
 
 summary(full_model_org_units)
+summary(full_model_org_units0)
 summary(full_model_org_units_oil_water)
 ```
 
 
 ## Overall marginalised mean 
 
-Overall mean at the mean of each other predictor
+### Overall mean at the mean of each other predictor, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 ```{r}
 res<-marginal_means(model = full_model_org_units, data=dat, mod="1") 
 res$mod_table
-
 ```
+### Overall mean at the mean of each other predictor, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r}
+res0<-marginal_means(model = full_model_org_units0, data=dat, mod="1") 
+res0$mod_table
+```
+
 
 ## Marginal means for different cooking categories
 
-Overall mean for each cooking category, at the mean of each other predictor
+### Overall mean for each cooking category, at the mean of each other predictor, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
 res_cat<-marginal_means(full_model_org_units, data = dat, mod = "1", by = "Cooking_Category")
 res_cat$mod_table
 
 orchard_plot(res_cat, xlab = "lnRR", condition.lab = "Cooking Category" )
-
 ```
+
+### Overall mean for each cooking category, at the mean of each other predictor, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r, fig.width=10, fig.height=7}
+res_cat0<-marginal_means(full_model_org_units0, data = dat, mod = "1", by = "Cooking_Category")
+res_cat0$mod_table
+
+orchard_plot(res_cat0, xlab = "lnRR", condition.lab = "Cooking Category" )
+```
+
 
 ## Marginal means for pre-determined cooking times
 
 Here, we generate estimates at cooking times of 2, 10, and 25 min. 
+
+### Marginal means for pre-determined cooking times, with Ratio_liquid_fish taken as `NA` for the dry cooking category 
 
 ```{r, fig.width=10, fig.height=7}
 res_cooking_time <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time$mod_table
 
 orchard_plot(res_cooking_time, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+```
+
+### Marginal means for pre-determined cooking times, with Ratio_liquid_fish taken as `0` for the dry cooking category 
+
+```{r, fig.width=10, fig.height=7}
+res_cooking_time0 <-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time0$mod_table
+
+orchard_plot(res_cooking_time0, xlab = "lnRR", condition.lab = "Cooking time (sec)")
 
 ```
 
-Marginalised means for each cooking category, at different cooking times
+
+
+### Marginalised means for each cooking category, at different cooking times, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
 res_cooking_time_cat <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
@@ -616,12 +711,23 @@ orchard_plot(res_cooking_time_cat, xlab = "lnRR", condition.lab = "Cooking time 
 
 ```
 
+### Marginalised means for each cooking category, at different cooking times, with Ratio_liquid_fish taken as `NA` for the dry cooking category
+
+```{r, fig.width=10, fig.height=7}
+res_cooking_time_cat0 <-marginal_means(full_model_org_units0, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time_cat0$mod_table
+
+orchard_plot(res_cooking_time_cat0, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+
+```
 
 
 ## Marginal means for different volumes of liquid
 
+### Ratio_liquid_fish taken as `NA` for the dry cooking category 
+
 Here, we generate marginalised estimates at volumes of liquid of ~0.1mL/g of tissue, ~10 ml/g of tissue, or 45 mL/g of tissue. We did not look at the means for different cooking categories because they are inherently different in the volume of liquid used. 
-We also only used the data on oil and water because the "No liquid" category is not relevant for this analysis. 
+We also only used the data on oil and water because the "No liquid" category is not relevant for this analysis when considering Ratio_liquid_fish as NA. 
 
 ```{r, fig.width=10, fig.height=7}
 res_volume<-marginal_means(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", at = list(log_Ratio_liquid_fish = c(log(0.1), log(10), log(45))), by = "log_Ratio_liquid_fish")
@@ -630,7 +736,20 @@ res_volume$mod_table
 orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(Liquid volume to tissue sample ratio (mL/g))")
 ```
 
+### Ratio_liquid_fish taken as `0` for the dry cooking category 
+
+Here, we generate marginalised estimates at volumes of liquid of 0mL/g of tissue (dry cooking), ~10 ml/g of tissue, or 45 mL/g of tissue. 
+
+```{r, fig.width=10, fig.height=7}
+res_volume0<-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(log_Ratio_liquid_fish0 = c(0, log(10), log(45))), by = "log_Ratio_liquid_fish0")
+res_volume0$mod_table
+
+orchard_plot(res_volume0, xlab = "lnRR", condition.lab = "ln(Liquid volume to tissue sample ratio + 1 (mL/g))")
+```
+
 ## Marginal means for different PFAS carbon chains
+
+### Overall mean at the mean of each other predictor, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 Here, we generate marginalized estimates for PFAS of 3, 6, and 12 carbon chains
 
@@ -641,7 +760,18 @@ res_PFAS$mod_table
 orchard_plot(res_PFAS, xlab = "lnRR", condition.lab = "PFAS carbon chain")
 ```
 
- Marginalised mean estimate for each PFAS carbon chain, for each cooking category 
+### Overall mean at the mean of each other predictor, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r, fig.width=10, fig.height=7}
+res_PFAS0<-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS0$mod_table
+
+orchard_plot(res_PFAS0, xlab = "lnRR", condition.lab = "PFAS carbon chain")
+```
+
+
+
+### Marginalised mean estimate for each PFAS carbon chain, for each cooking category, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
 res_PFAS_cat<-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
@@ -649,6 +779,16 @@ res_PFAS_cat$mod_table
 
 orchard_plot(res_PFAS_cat, xlab = "lnRR", condition.lab = "PFAS carbon chain")
 ```
+
+### Marginalised mean estimate for each PFAS carbon chain, for each cooking category, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r, fig.width=10, fig.height=7}
+res_PFAS_cat0<-marginal_means(full_model_org_units0, data = dat, mod = "Cooking_Category", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS_cat0$mod_table
+
+orchard_plot(res_PFAS_cat0, xlab = "lnRR", condition.lab = "PFAS carbon chain")
+```
+
 ##
 
 
@@ -697,9 +837,27 @@ save(full_model_oil, file = here("Rdata", "full_model_oil.RData"))
             
 ```
 
+### Full model, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r}
+full_model_oil0 <- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s) +
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Ratio_liquid_fish_0 + 1)))
+                 
+summary(full_model_oil0)
+
+save(full_model_oil0, file = here("Rdata", "full_model_oil0.RData"))
+            
+```
+
+
+
 ```{r, include=F}
 load(here("Rdata", "full_model_oil.RData"))
 summary(full_model_oil)
+
+summary(full_model_oil0)
 ```
 
 
@@ -742,6 +900,17 @@ full_model_water <- run_model_water(water_dat, ~
 summary(full_model_water)
 ```
 
+### Full model, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r}
+full_model_water0 <- run_model_water(water_dat, ~
+                                           scale(Length_cooking_time_in_s) +
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Ratio_liquid_fish_0 + 1)))
+                 
+summary(full_model_water0)
+```
+
 
 ### Comparison between steaming and other water-based cooking categories
 
@@ -773,6 +942,7 @@ save(full_model_water, full_model_water_steamed, full_model_water_steamed_cont, 
 ```{r, include=F}
 load(here("Rdata", "full_model_water.RData"))
 summary(full_model_water)
+summary(full_model_water0)
 summary(full_model_water_steamed)
 ```
 
@@ -897,7 +1067,7 @@ ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
 
 ```
 
-### Predictions with the full model
+### Predictions with the full model, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.height=8, fig.width=10}
 ##### Oil based
@@ -963,12 +1133,75 @@ ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
 
+### Predictions with the full model, with Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_time0<- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Ratio_liquid_fish_0 + 1)))
+
+pred_oil_time0<-predict.rma(full_model_oil_time0, addx=TRUE, newmods=cbind(0,oil_dat$Length_cooking_time_in_s, 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_oil_time0<-as.data.frame(pred_oil_time0)
+pred_oil_time0$Length_cooking_time_in_s=pred_oil_time0$X.Length_cooking_time_in_s
+pred_oil_time0<-left_join(oil_dat, pred_oil_time0, by="Length_cooking_time_in_s")
 
 
+##### Water based
+full_model_water_time0<- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+                                           Length_cooking_time_in_s+
+                                           scale(PFAS_carbon_chain) +
+                                           scale(log(Ratio_liquid_fish_0 + 1)))
+
+pred_water_time0<-predict.rma(full_model_water_time0, addx=TRUE, newmods=cbind(water_dat$Length_cooking_time_in_s, 0, 0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_time0<-as.data.frame(pred_water_time0)
+pred_water_time0$Length_cooking_time_in_s=pred_water_time0$X.Length_cooking_time_in_s
+pred_water_time0<-left_join(water_dat, pred_water_time0, by="Length_cooking_time_in_s")
+
+##### No liquid 
+
+full_model_dry_time<- run_model_dry(dry_dat, ~ Length_cooking_time_in_s)
+
+pred_dry_time<-predict.rma(full_model_dry_time, addx=TRUE) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_dry_time<-as.data.frame(pred_dry_time)
+pred_dry_time$Length_cooking_time_in_s=pred_dry_time$X.Length_cooking_time_in_s
+pred_dry_time<-left_join(dry_dat, pred_dry_time, by="Length_cooking_time_in_s")
+
+
+
+
+ggplot(dat,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Category)) +
+  
+       geom_ribbon(data=pred_water_time0, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_time0,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+       geom_ribbon(data=pred_oil_time0, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_oil_time0,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+        geom_ribbon(data=pred_dry_time, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_time,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "Cooking time (s)", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
 
 ## Liquid volume to tissue sample ratio
 
-### Generate predictions
+### Single moderator models
 ```{r}
 
   oil_dat_vol<-filter(oil_dat, Ratio_liquid_fish!="NA") 
@@ -1023,6 +1256,8 @@ ggplot(dat,aes(x = log(Ratio_liquid_fish), y = lnRR, fill=Cooking_Category)) +
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 
 ```
+
+
 
 ### Predictions with the full model
 
@@ -1080,10 +1315,9 @@ ggplot(dat,aes(x = log(Ratio_liquid_fish), y = lnRR, fill=Cooking_Category)) +
 
 
 
-
 ## PFAS carbon chain length
 
-### Generate predictions
+### Generate predictions with single moderator models
 ```{r}
 
   oil_dat_PFAS<-filter(oil_dat, PFAS_carbon_chain!="NA") 
@@ -1148,7 +1382,7 @@ ggplot(dat, aes(x= PFAS_carbon_chain, y=lnRR, fill=Cooking_Category))+
 ```
 
 
-### Predictions with the full model
+### Predictions with the full model, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.height=8, fig.width=10}
 ##### Oil based
@@ -1216,6 +1450,75 @@ ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
           panel.border=element_rect(colour="black", fill=NA, size=1.2))
 ```
 
+### Predictions with the full model, with Ratio_liquid_fish taken as `NA` for the dry cooking category
+
+```{r, fig.height=8, fig.width=10}
+##### Oil based
+full_model_oil_PFAS0<- run_model_oil(oil_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Ratio_liquid_fish_0 + 1)))
+pred_oil_PFAS0<-predict.rma(full_model_oil_PFAS0, addx=TRUE, newmods=cbind(0,0, oil_dat$PFAS_carbon_chain,0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of PFAS carbon chain
+pred_oil_PFAS0<-as.data.frame(pred_oil_PFAS0)
+pred_oil_PFAS0$PFAS_carbon_chain=pred_oil_PFAS0$X.PFAS_carbon_chain
+pred_oil_PFAS0<-left_join(oil_dat, pred_oil_PFAS0, by="PFAS_carbon_chain")
+
+
+##### Water based
+full_model_water_PFAS0<- run_model_water(water_dat, ~ scale(Temperature_in_Celsius) +
+                                           scale(Length_cooking_time_in_s)+
+                                           PFAS_carbon_chain +
+                                           scale(log(Ratio_liquid_fish + 1)))
+
+pred_water_PFAS0<-predict.rma(full_model_water_PFAS0, addx=TRUE, newmods=cbind(0, water_dat$PFAS_carbon_chain,0)) # Set all predictors to their mean (mean =0 when z-transformed) and set the range of values of cooking time
+pred_water_PFAS0<-as.data.frame(pred_water_PFAS0)
+pred_water_PFAS0$PFAS_carbon_chain=pred_water_PFAS0$X.PFAS_carbon_chain
+pred_water_PFAS0<-left_join(water_dat, pred_water_PFAS0, by="PFAS_carbon_chain")
+
+##### No liquid 
+
+full_model_dry_PFAS<- run_model_dry(dry_dat, ~ PFAS_carbon_chain)
+
+pred_dry_PFAS<-predict.rma(full_model_dry_PFAS, addx=TRUE)
+pred_dry_PFAS<-as.data.frame(pred_dry_PFAS)
+pred_dry_PFAS$PFAS_carbon_chain=pred_dry_PFAS$X.PFAS_carbon_chain
+pred_dry_PFAS<-left_join(dry_dat, pred_dry_PFAS, by="PFAS_carbon_chain")
+
+
+
+
+ggplot(dat,aes(x = PFAS_carbon_chain, y = lnRR, fill=Cooking_Category)) +
+  
+    
+       geom_ribbon(data=pred_dry_PFAS, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_dry_PFAS,aes(y = pred), size = 1.5, col="palegreen3")+  
+  
+  
+       geom_ribbon(data=pred_water_PFAS0, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.2) +
+       geom_line(data=pred_water_PFAS0,aes(y = pred), size = 1.5, col="dodgerblue")+  
+  
+  
+       geom_ribbon(data=pred_oil_PFAS0, aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = 0.3) +
+       geom_line(data=pred_oil_PFAS0,aes(y = pred), size = 1.5, col="goldenrod")+  
+  
+  
+       geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       labs(x = "PFAS carbon chain length", y = "lnRR", size = "Precison (1/SE)") + 
+  scale_size_continuous(range=c(1,10))+
+  theme_bw() +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
+  theme(text = element_text(size = 18, colour = "black", hjust = 0.5), # change font sizes and legend position
+          legend.text=element_text(size=14),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=15), 
+          panel.border=element_rect(colour="black", fill=NA, size=1.2))
+```
+
+
 ##
 
 # **Publication bias** {.tabset .tabset_fade .tabset_pills} 
@@ -1228,6 +1531,8 @@ funnel(full_model)
 ```
 
 ## Egger regressions 
+
+### Full model with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r}
 egger_all <- run_model(dat, ~ - 1 + Cooking_Category +
@@ -1247,9 +1552,30 @@ funnel(egger_all)
 # little evidence
 egger_n <- run_model(dat, ~ I(sqrt(1/N_tilde)))
 summary(egger_n)
-
-save(egger_all, egger_n, file = here("Rdata", "egger_regressions.RData"))
 ```
+
+### Full model with Ratio_liquid_fish taken as `NA` for the dry cooking category
+
+```{r}
+egger_all0 <- run_model(dat, ~ - 1 + Cooking_Category +
+                      I(sqrt(1/N_tilde)) +  
+                      scale(Publication_year) + 
+                      scale(Temperature_in_Celsius) +
+                      scale(Length_cooking_time_in_s) +
+                      scale(PFAS_carbon_chain) +
+                      scale(log(Ratio_liquid_fish_0 + 1)))
+summary(egger_all0)
+
+
+funnel(egger_all0, yaxis = "seinv")
+funnel(egger_all0)
+
+#funnel(egger_all, yaxis = "seinv")
+# little evidence
+
+save(egger_all, egger_all0, egger_n, file = here("Rdata", "egger_regressions.RData"))
+```
+
 ## Publication year
 
 ```{r, fig.height=8, fig.width=10}
@@ -1484,6 +1810,7 @@ ggplot(dat.sens,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Categor
 
 #### Liquid volume to tissue sample ratio
 
+##### Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.height=8, fig.width=10}
 dat.sens.vol<-filter(dat.sens, Ratio_liquid_fish!="NA")
@@ -1505,7 +1832,33 @@ mod.sens.vol<- rma.mv(lnRR, VCV_lnRR.sens.vol,
 summary(mod.sens.vol)
 
 plot_continuous(dat.sens.vol, mod.sens.vol, log(dat.sens.vol$Ratio_liquid_fish), "ln(Liquid volume to tissue sample ratio (mL/g))") +
-  scale_fill_manual(values=c("goldenrod2", "dodgerblue3"))# The relationship with cooking time appears even stronger 
+  scale_fill_manual(values=c("goldenrod2", "dodgerblue3"))
+
+```
+
+##### Ratio_liquid_fish taken as `0` for the dry cooking category
+
+```{r, fig.height=8, fig.width=10}
+dat.sens.vol0<-filter(dat.sens, Ratio_liquid_fish_0!="NA")
+include <- row.names(cor_tree) %in% dat.sens.vol0$Phylogeny # Check which rows are present in the phylogenetic tree 
+cor_tree_sens.vol0 <- cor_tree[include, include] # Only include the species that match the reduced data set 
+VCV_lnRR.sens.vol0<-make_VCV_matrix(dat.sens.vol0, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
+
+
+mod.sens.vol0<- rma.mv(lnRR, VCV_lnRR.sens.vol, 
+         mods=~ log(Ratio_liquid_fish_0 + 1),
+         random = list(~1|Study_ID,
+                       ~1|Phylogeny, 
+                       ~1|Species_common, 
+                       ~1|PFAS_type, 
+                       ~1|Effect_ID), 
+         R= list(Phylogeny = cor_tree_sens.vol), 
+         test = "t", 
+         data = dat.sens.vol0)
+summary(mod.sens.vol0)
+
+plot_continuous(dat.sens.vol0, mod.sens.vol0, log(dat.sens.vol$Ratio_liquid_fish_0 + 1), "ln(Liquid volume to tissue sample ratio + 1 (mL/g))") +
+  scale_fill_manual(values=c("#55C667FF","goldenrod2", "dodgerblue3"))
 
 ```
 
