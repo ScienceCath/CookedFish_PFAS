@@ -15,20 +15,19 @@ These share senior authorship
 
 # Content
 - Folder R:
+  - Final_data_analysis.Rmd: R markdown file with code for final data analysis
   - First_data_exploration.Rmd: R markdown file with code for preliminary data exploration
   - formulas.Rmd: R Code including formulas to calculate effect sizes
   - formulas.docx: word document version of R Code including formulas to calculate effect sizes
   - load_pilot_data.Rmd: R markdown file with code for preliminary check of pilot data
   - functions.R: R code of custom-made function 'marginalised_means'
-  - prem.analysis_files: plots of final data analysis
-  - prem.analysis.html: html version of final data analysis
-  - prem.analysis.Rmd: R markdown file of final data analysis
-  - Species_Scientific.csv: csv file of scientific names of blue food species included in meta-analysis
+  - prem.analysis.html: html version of final data analysis           # Should be renamed to: Final_data_analysis (not sure how to do that)
   - tree_cooked_fish_MA.Rmd: R markdown file with code for phylogenetic tree of blue food species included in meta-analysis
+  - prem_analysis_files: Includes preliminary figures                  # Should be moved to: folder fig (not sure how to do that)
 
 - Folder data:
   - Metadata_CookedFish.docx: word document of meta-data file of data extraction sheet
-  - pilot_data_preprocessed.csv: csv data file of raw data (extracted data from included studies)
+  - Rawdata.csv: csv data file of raw data (extracted data from included studies)
   - Species_Scientific.csv: csv file of scientific names of blue food species included in meta-analysis
   
 - Folder fig:
