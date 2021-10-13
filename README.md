@@ -13,7 +13,7 @@ Catharina Vendl1*, Patrice Pottier1, Matthew D. Taylor1, 2, 3, Jennifer Braeunig
 These share senior authorship 
 *Corresponding authors: c.vendl@unsw.edu.au, s.nakagawa@unsw.edu.au
 
-
+# Content
 - Folder R:
   - First_data_exploration.Rmd: R markdown file with code for preliminary data exploration
   - formulas.Rmd: R Code including formulas to calculate effect sizes
