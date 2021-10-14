@@ -38,7 +38,7 @@ library(here)
 ```{r load data, message = FALSE, echo = TRUE, eval = TRUE, warning = FALSE}
 #setwd("/Users/itchyshin/Dropbox/Losia-Shinichi/LAB/MA_general/trees_other/Cat_cooked_fish_MA")
 #dat <- read.csv("Species_Scientific.csv")
-dat <- read.csv(here("data", "pilot_data_preprocessed.csv"))
+dat <- read.csv(here("data", "Rawdata.csv"))
 str(dat)
 myspecies <- as.character(unique(dat$Species_Scientific)) #get list of species
 str_sort(myspecies) #visual check
@@ -104,7 +104,7 @@ is.binary.tree(tree2) #TRUE
 Save tree
 
 ```{r save final tree}
-write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
+write.tree(tree2, file="data/phylogenetic_tree.tre") #save the tree
 
 # *NOTE:* underscores within species names on tree tip labels are added automatically
 # tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
@@ -112,44 +112,11 @@ write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
 # tree$node.label <- NULL #you can delete internal node labels
 ```
 
-Plot tree
 
-```{r plot final binary tree, fig.width=10, fig.height=20, echo=TRUE, message=FALSE}
-plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
-
-#or plot to pdf
-pdf("plot_cooked_fish_MA.pdf", width=8, heigh=10)
-plot(tree2, cex=0.6, label.offset =.1, no.margin = TRUE)
-dev.off()
-
-```
-
-```{r save final tree}
-write.tree(tree2, file="plot_cooked_fish_MA.tre") #save the tree
-
-# *NOTE:* underscores within species names on tree tip labels are added automatically
-# tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
-# tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
-# tree$node.label <- NULL #you can delete internal node labels
-```
-
-Plot tree
-
-```{r plot final binary tree, fig.width=10, fig.height=20, echo=TRUE, message=FALSE}
-plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
-
-#or plot to pdf
-pdf("plot_cooked_fish_MA.pdf", width=8, heigh=10)
-plot(tree2, cex=0.6, label.offset =.1, no.margin = TRUE)
-dev.off()
-
-```
-
-
-START HERE For the final figure
+Load the tree
 
 ```{r load tree}
-tree <- read.tree(file="R/plot_cooked_fish_MA.tre") #if you need to read in the tree
+tree <- read.tree(file="data/phylogenetic_tree.tre") #if you need to read in the tree
 tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
 tree$node.label <- NULL #you can delete internal node labels
 #*NOTE:* underscores within species names on tree tip labels are added automatically
@@ -161,7 +128,7 @@ Plot tree
 plot(tree, cex=.6, label.offset =.1, no.margin = TRUE)
 
 #or plot to pdf
-pdf("fig/tree_cooked_fish_MA.pdf", width=8, heigh=16)
+pdf("fig/phylogenetic_tree.pdf", width=8, heigh=16)
 plot(tree, cex=1.5, label.offset =.1, no.margin = TRUE)
 dev.off()
 ```

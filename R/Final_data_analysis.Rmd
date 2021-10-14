@@ -82,14 +82,14 @@ raw_data <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBa
 processed_data <- filter(raw_data, !PFAS_type == 'PFOS_Total')
 processed_data <- filter(processed_data, !Species_common == 'Fish cake')
 
-write.csv(processed_data, here("data", "pilot_data_preprocessed.csv"), row.names = F)
+write.csv(processed_data, here("data", "Rawdata.csv"), row.names = F)
 ```
 
 
 
 ### Load processed data
 ```{r}
-processed_data <- read.csv(here("data", "pilot_data_preprocessed.csv")) 
+processed_data <- read.csv(here("data", "Rawdata.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
@@ -106,7 +106,7 @@ The phylogenetic tree was generated in the `tree_cooked_fish_MA.Rmd` document
 
 ```{r, fig.height=10, fig.width = 8}
 
-tree <- read.tree(here("data", "plot_cooked_fish_MA.tre")) # Import phylogenetic tree (see tree_cooked_fish_MA.Rmd for more details) 
+tree <- read.tree(here("data", "phylogenetic_tree.tre")) # Import phylogenetic tree (see tree_cooked_fish_MA.Rmd for more details) 
 
 tree <- compute.brlen(tree) # Generate branch lengths 
 
@@ -354,7 +354,7 @@ dat.time<-filter(dat, Length_cooking_time_in_s!="NA") # Need to remove the NAs f
 plot_continuous(dat.time, time_model, dat.time$Length_cooking_time_in_s, "Cooking time (s)")
 ```
 
-### Ratio between tissue sample and liquid volume
+### Ratio between tissue sample and liquid volume, with dry cooking coded as `NA`
 
 ```{r, fig.width=10, fig.height=7}
 # Ratio_liquid_fish
@@ -369,7 +369,7 @@ dat.volume<-filter(dat, Ratio_liquid_fish!="NA")
 plot_continuous(dat.volume, volume_model, log(dat.volume$Ratio_liquid_fish), "ln (Liquid volume to tissue sample ratio)")
 ```
 
-### Ratio between tissue sample and liquid volume, with no-liquid coded as "0"
+### Ratio between tissue sample and liquid volume, with dry cooking coded as `0`
 
 ```{r, fig.width=10, fig.height=7}
 # Ratio_liquid_fish with "0" for no-liquid
@@ -505,7 +505,7 @@ r2_ml(moisture_model)
 
 ## Full model 
 
-### Full model with Ratio_liquid_fish as "NA" for the dry cooking category
+### Full model with Ratio_liquid_fish as `NA` for the dry cooking category
 ```{r}
 
 # Testing cooking categories  
@@ -533,7 +533,7 @@ summary(full_model)
 save(full_model, file = here("Rdata", "full_model.RData"))
 ```
 
-### Full model with Ratio_liquid_fish as "0" for the dry cooking category
+### Full model with Ratio_liquid_fish as `0` for the dry cooking category
 
 ```{r}
 full_model0  <- rma.mv(yi = lnRR, V = VCV_lnRR, 
@@ -2944,7 +2944,7 @@ p_4B<- ggplot(dat,aes(x = log(Ratio_liquid_fish), y = lnRR, fill=Cooking_Categor
   
        geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
        scale_fill_manual(values=c("#55C667FF","goldenrod2", "dodgerblue3"))+
-       labs(x = "ln(Liquid volume to tissue sample ratio (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
+       labs(x = "ln(Liquid volume to tissue sample ratio) (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
