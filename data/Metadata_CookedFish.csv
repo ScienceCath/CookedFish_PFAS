@@ -1,0 +1,43 @@
+Column name,Explanation,Options of answers
+Study_ID,What is the dentification number of the study?,F001 – F013
+Author_year,What is the last name of the first author and the year of study publication?,Name_year
+Country_firstAuthor,What is the country’s name where the institution of the first author is location?,Country name
+Effect_ID,What is the number of the effect size?,E001 – E612
+Species_common,What is the common name of the study species?,Common species name
+Species_Scientific,What is the scientific name of the study species?,Scientific species name
+Invertebrate_vertebrate,Is the study species an invertebrate or a vertebrate species?,Invertebrate/vertebrate
+Moisture_loss_in_percent,What is the moisture loss of the sample in per cent?,Number in %
+PFAS_type,What type of PFAS was measured?,PFAS type
+PFAS_carbon_chain,What is the length of the carbon chain of the measured PFAS type?,Number
+Cooking_method,What is the claimed method of cooking?,Cooking method
+Cooking_Category,"Which of the three cooking categories did the claimed cooking method belong to: ‘oil-based’, ‘water-based’ & ‘no liquid’?",oil-based/ water-based/ no liquid
+Comments_cooking,Is there any additional information regarding the cooking method that might be relevant for the meta-analysis?,Text
+Temperature_in_Celsius,What is the cooking temperature in Celsius?,Number
+Length_cooking_time_in_s,What is the cooking time in s? ,Number
+Type_liquid,What type of liquid is used for cooking?,Oil/ water/ none
+Oil_type,What type of oil is used in the cooking process?,"Type of oil (e.g., olive oil)/ NA (if no oil is used)"
+Volume_liquid_ml,How much liquid is used in ml?,Number/ NA (if no liquid is used)
+Cohort_ID,What is the cohort ID of the sample?,C001 – C159
+Cohort_comment,Is there any additional information regarding the cohort that might be relevant for the meta-analysis?,Text
+Nc,What is the sample size of the raw (control) sample? ,Number
+Pooled_Nc,What is the sample size of the raw sample after it was pooled (if applicable) for analysis?,Number (same as Nc if no pooling occured)
+Unit_PFAS_conc,What unit is the PFAS concentration stated in?,"Unit (e.g., ng/g)"
+Mc,What is the concentration of PFAS of the raw (control) sample?,Number
+Mc_comment,Is there any additional information regarding the concentration of PFAS of the raw (control) sample that might be relevant for the meta-analysis?,Text
+Sc,What is the standard error/ standard deviation of the concentration of PFAS of the raw (control) sample?,Number
+sd,Does the study provide standard error or standard deviation?,standard error/ standard deviation
+Sc_technical_biological,Is the provided standard error/ standard deviation biological or technical? ‘Biological’ means different samples were measured and sd/se of those measurements were calculated. ‘Technical’ means only one sample was measured several times and sd/se of those replicated measurements were calculated. ,Biological/ technical
+If_technical_how_many,"If technical standard error/ standard deviation is provided, how many measurements are performed?",Number
+Ne,What is the sample size of the cooked (control) sample?,Number
+Pooled_Ne,What is the sample size of the cooked sample after it was pooled (if applicable) for analysis?,Number (same as Nc if no pooling occured)
+Me,What is the concentration of PFAS of the cooked (control) sample?,Number
+Me_comment,Is there any additional information regarding the concentration of PFAS of the cooked (control) sample that might be relevant for the meta-analysis?,Text
+Se,What is the standard error/ standard deviation of the concentration of PFAS of the cooked (control) sample?,Number
+LOD,What is the limit of detection of the PFAS concentration?,Number
+LOQ,What is the limit of quantification of the PFAS concentration?,Number
+Unit_LOD_LOQ,What unit is the PFAS concentration of LOD/LOQ stated in?,"Unit (e.g., ng/g)"
+Design,What is the study design like? ,Dependent/independent
+DataSource,Where was the PFAS concentration in the paper extracted from?,Table No./ Figure No./ Page No.
+Raw_data_provided,Do the authors provide the raw data of the study (either in the supplementary material or after email request)?,Yes/No
+General_comments,Is there any additional information regarding the study that might be relevant for the meta-analysis?,Text
+Checked,Was the extracted data checked by a second author?,Yes/No
