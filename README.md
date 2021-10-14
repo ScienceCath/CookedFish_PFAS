@@ -21,14 +21,14 @@ Catharina Vendl1*, Patrice Pottier1, Matthew D. Taylor1, 2, 3, Jennifer Braeunig
   - formulas.docx: word document version of Rmd file including formulas to calculate effect sizes.  
   - load_pilot_data.Rmd: R markdown file with code for preliminary check of pilot data.  
   - functions.R: R code of a custom function 'marginalised_means'.  
-  - prem.analysis.html: html version of final data analysis.           # Should be renamed to: Final_data_analysis (not sure how to do that).  
+  - Final_data_analysis.html: html version of final data analysis.      
   - tree_cooked_fish_MA.Rmd: R markdown file with code for phylogenetic tree of species included in the meta-analysis.  
-  - prem_analysis_files: Includes preliminary figures.                  # Should be moved to: folder fig, renamed or deleted? (not sure how to do that).  
 
 - "data" folder:   
   - Metadata_CookedFish.docx: word document of meta-data file of data extraction sheet.  #change to .txt or .csv file
   - Rawdata.csv: csv data file with raw data (data extracted from included studies).  
   - Species_Scientific.csv: csv file of scientific names of species included in the meta-analysis.  
+  - phylogenetic_tree.tre: phylogenetic tree used in the analyses
   
 - "fig" folder:   
   - Includes figures created for the manuscript.  
