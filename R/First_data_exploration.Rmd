@@ -52,9 +52,9 @@ fishdata_3 <- fishdata_2 %>% filter(!Species_common == 'Fish cake')
 dim(fishdata_3)
 #512  47
 
-write.csv(fishdata_3, here("data", "pilot_data_preprocessed.csv"), row.names = F)
+write.csv(fishdata_3, here("data", "Rawdata.csv"), row.names = F)
 
-fishdata_3 <- read.csv(here("data", "pilot_data_preprocessed.csv"))
+fishdata_3 <- read.csv(here("data", "Rawdata.csv"))
 
 ```
 
@@ -138,8 +138,11 @@ Bhavsar_2014_Sander <- Bhavsar_2014 %>% filter (Species_Scientific == "Sander vi
 
 Bhavsar_2014_Sander  %>% distinct(Cohort_ID)
 Bhavsar_2014_Sander  %>% distinct(Effect_ID)
+```
+
 
 #Barbosa_2018
+```{r check pilot data loading, echo=FALSE}
 Barbosa_2018 <- fishdata_3 %>% filter (Study_ID == "F002")
 
 Barbosa_2018  %>% distinct(Species_Scientific)
@@ -148,8 +151,10 @@ Barbosa_2018  %>% distinct(Cohort_ID)
 Barbosa_2018  %>% distinct(Effect_ID)
 Barbosa_2018  %>% distinct(Cooking_Category)
 Barbosa_2018  %>% distinct(Cooking_method)
+```
 
 #Alves_2017
+```{r check pilot data loading, echo=FALSE}
 Alves_2017 <- fishdata_3 %>% filter (Study_ID == "F001")
 
 Alves_2017  %>% distinct(Species_Scientific)
@@ -158,8 +163,10 @@ Alves_2017  %>% distinct(Cohort_ID)
 Alves_2017  %>% distinct(Effect_ID)
 Alves_2017  %>% distinct(Cooking_Category)
 Alves_2017  %>% distinct(Cooking_method)
+```
 
 #DelGobbo_2008
+```{r check pilot data loading, echo=FALSE}
 DelGobbo_2008 <- fishdata_3 %>% filter (Study_ID == "F005")
 
 DelGobbo_2008  %>% distinct(Species_Scientific)
@@ -201,8 +208,10 @@ DelGobbo_2008_Amblyraja  %>% distinct(Effect_ID)
 DelGobbo_2008_Larimichthys <- DelGobbo_2008 %>% filter (Species_Scientific == "Larimichthys polyactis") 
 DelGobbo_2008_Larimichthys  %>% distinct(Cohort_ID)
 DelGobbo_2008_Larimichthys  %>% distinct(Effect_ID)
+```
 
 #Hu_2020
+```{r check pilot data loading, echo=FALSE}
 Hu_2020 <- fishdata_3 %>% filter (Study_ID == "F006")
 
 Hu_2020  %>% distinct(Species_Scientific)
@@ -211,8 +220,10 @@ Hu_2020  %>% distinct(Cohort_ID)
 Hu_2020  %>% distinct(Effect_ID)
 Hu_2020  %>% distinct(Cooking_Category)
 Hu_2020  %>% distinct(Cooking_method)
+```
 
 #Kim_2020
+```{r check pilot data loading, echo=FALSE}
 Kim_2020 <- fishdata_3 %>% filter (Study_ID == "F007")
 
 Kim_2020  %>% distinct(Species_Scientific)
@@ -221,8 +232,10 @@ Kim_2020  %>% distinct(Cohort_ID)
 Kim_2020  %>% distinct(Effect_ID)
 Kim_2020  %>% distinct(Cooking_Category)
 Kim_2020  %>% distinct(Cooking_method)
+```
 
 #Luo_2019
+```{r check pilot data loading, echo=FALSE}
 Luo_2019 <- fishdata_3 %>% filter (Study_ID == "F008")
 
 Luo_2019  %>% distinct(Species_Scientific)
@@ -231,8 +244,10 @@ Luo_2019  %>% distinct(Cohort_ID)
 Luo_2019  %>% distinct(Effect_ID)
 Luo_2019  %>% distinct(Cooking_Category)
 Luo_2019  %>% distinct(Cooking_method)
+```
 
 #Sungur_2019
+```{r check pilot data loading, echo=FALSE}
 Sungur_2019 <- fishdata_3 %>% filter (Study_ID == "F010")
 
 Sungur_2019  %>% distinct(Species_Scientific)
@@ -277,8 +292,10 @@ Sungur_2019_Scomber  %>% distinct(Effect_ID)
 Sungur_2019_Atherina <- Sungur_2019 %>% filter (Species_Scientific == "Atherina hepsetus")
 Sungur_2019_Atherina  %>% distinct(Cohort_ID)
 Sungur_2019_Atherina  %>% distinct(Effect_ID)
+```
 
 #Taylor_2019
+```{r check pilot data loading, echo=FALSE}
 Taylor_2019 <- fishdata_3 %>% filter (Study_ID == "F011")
 
 Taylor_2019  %>% distinct(Species_Scientific)
@@ -299,8 +316,10 @@ Taylor_2019_Portunus  %>% distinct(Effect_ID)
 Taylor_2019_Metapenaeus <- fishdata_3 %>% filter (Species_Scientific == "Metapenaeus macleayi")
 Taylor_2019_Metapenaeus  %>% distinct(Cohort_ID)
 Taylor_2019_Metapenaeus  %>% distinct(Effect_ID)
+```
 
 #Vassiliadou_2015
+```{r check pilot data loading, echo=FALSE}
 Vassiliadou_2015 <- fishdata_3 %>% filter (Study_ID == "F013")
 
 Vassiliadou_2015  %>% distinct(PFAS_type)
@@ -345,8 +364,6 @@ Vassiliadou_2015_Parapenaeus  %>% distinct(Effect_ID)
 Vassiliadou_2015_Loligo <- Vassiliadou_2015 %>% filter (Species_Scientific == "Loligo vulgaris")
 Vassiliadou_2015_Loligo  %>% distinct(Cohort_ID)
 Vassiliadou_2015_Loligo  %>% distinct(Effect_ID)
-
-
 
 ```
 
@@ -787,7 +804,7 @@ table_Volume_liquid_ml_2 %>%
   kable_styling(full_width = F, bootstrap_options = c("striped"))
 ```
 
-#### Ratio cooking liquid/seafood
+####Liquid volume tissue sample ratio
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 unique(fishdata_3$Ratio_liquid_fish)
@@ -798,6 +815,9 @@ names(ratio)
 ratio_2 <- ratio[,c(21,25)]
 range(ratio_2$Ratio_liquid_fish)
 #0.00265861 45.33091568
+
+mean(ratio_2$Ratio_liquid_fish)
+#13.5824
 
 #Oil only
 ratio_oil <- ratio_2 %>% filter(Oil == 'Yes')
@@ -813,9 +833,6 @@ ratio_water <- ratio_2 %>% filter(Oil == 'No')
 
 range(ratio_water$Ratio_liquid_fish)
 #2.50000 45.33092
-
-mean(ratio_water$Ratio_liquid_fish)
-#22.87562
 
 ```
 
