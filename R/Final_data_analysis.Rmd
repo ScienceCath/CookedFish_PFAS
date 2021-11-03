@@ -2395,7 +2395,7 @@ p_vol0<-ggplot(dat,aes(x = log_Ratio_liquid_fish0, y = lnRR)) +
        geom_ribbon(data=pred_uni_model_vol0, aes(ymin = ci.lb, ymax = ci.ub), alpha=0.25, fill="gray40") +
        geom_line(data=pred_uni_model_vol0,aes(y = pred), size = 1.5, col="gray30")+  
   
-       labs(x = "ln (Liquid/food item ratio + 1) (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
+       labs(x = "ln (Liquid/animal tissue ratio + 1) (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   # horizontal line at lnRR = 0
@@ -2726,7 +2726,7 @@ Estimates at 0.1 mL/g of tissue, 10 mL/g of tissue or 45 mL/g of tissue
 ```{r, fig.height=5, fig.width=7}
 volume_mm0 <-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(log_Ratio_liquid_fish0= c(0, 2.4, 3.8)), by = "log_Ratio_liquid_fish0")
  
-p_volume_mm0<-my_orchard(volume_mm0, xlab = "lnRR", condition.lab = "ln (Liquid/food iteam ratio + 1)", alpha=0.3)+
+p_volume_mm0<-my_orchard(volume_mm0, xlab = "lnRR", condition.lab = "ln (Liquid/animal tissue ratio + 1) (mL/g)", alpha=0.3)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
@@ -3146,7 +3146,7 @@ p_4B0<- ggplot(dat,aes(x = log(Ratio_liquid_fish_0 +1), y = lnRR, fill=Cooking_C
   
        geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
        scale_fill_manual(values=c("#55C667FF","goldenrod2", "dodgerblue3"))+
-       labs(x = "ln(Liquid/food item ratio + 1) (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
+       labs(x = "ln(Liquid/animal tissue ratio + 1) (mL/g)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
   geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5)+   
@@ -3179,7 +3179,8 @@ p_4C0<-ggplot(dat,aes(x = Temperature_in_Celsius, y = lnRR, fill=Cooking_Categor
        geom_line(data=pred_oil_temp0,aes(y = pred), size = 1.5, col="goldenrod")+  
   
        geom_point(aes(size=(1/sqrt(var_lnRR)), fill=Cooking_Category), shape=21, alpha=0.8) +
-       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+
+       scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"), 
+                         labels=c("no liquid", "oil-based", "water-based"))+
        labs(x = "Cooking temperature (°C)", y = "lnRR", size = "Precison (1/SE)") + 
   scale_size_continuous(range=c(1,10))+
   theme_bw() +
