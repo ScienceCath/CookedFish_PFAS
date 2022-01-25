@@ -48,14 +48,26 @@ library(cowplot)
 library(grDevices) # reqired for using base and ggplots together
 
 # Below is the custom function to calculate the lnRR 
-lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
+lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e){
   lnRR <- log(Me/Mc) + 
         0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
+  lnRR
+  }
+
+# calculating lnRR's sampling variance from independent designs
+var_lnRR_ind <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e){
   
+  var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) 
+  
+  var_lnRR
+}
+
+# calculating lnRR's sampling variance from dependent designs
+var_lnRR_dep <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
   var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) - 
          2 * rho * ((aCV2c*aCV2e)/sqrt(Nc*Ne)) 
   
-  data.frame(lnRR,var_lnRR)
+  var_lnRR
 }
 
 # Mc: Concentration of PFAS of the raw (control) sample
@@ -82,14 +94,14 @@ raw_data <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBa
 processed_data <- filter(raw_data, !PFAS_type == 'PFOS_Total')
 processed_data <- filter(processed_data, !Species_common == 'Fish cake')
 
-write.csv(processed_data, here("data", "Rawdata.csv"), row.names = F)
+write.csv(processed_data, here("data", "Rawdata_updated.csv"), row.names = F)
 ```
 
 
 
 ### Load processed data
 ```{r}
-processed_data <- read.csv(here("data", "Rawdata.csv")) 
+processed_data <- read.csv(here("data", "Rawdata_updated.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
@@ -133,26 +145,50 @@ The average coefficient of variation in PFAS concentration was calculated for ea
 Then, these values were averaged across studies and used to calculate the lnRR corrected for small sample sizes (for formula, see the `lnRR_func` above)
 
 ```{r}
+
+dat$Study_ID <- as.factor(dat$Study_ID)
+dat$SDe <- as.numeric(dat$SDe)
+# Calculate the squared coefficient of variation for control and experimental groups
 aCV2 <- dat %>% 
                group_by(Study_ID) %>%  # Group by study 
-                                     summarise(CV2c = mean((SDc/Mc)^2, na.rm = T),  # Calculate the squared coefficient of variation for control and experimental groups
-                                               CV2e = mean((SDe/Me)^2, na.rm = T)) %>% 
-                                                                                      ungroup() %>% # ungroup 
-                                                                                                   summarise(aCV2c = mean(CV2c, na.rm = T), # Mean CV^2 for exp and control groups across studies
-                                                                                                             aCV2e = mean(CV2e, na.rm = T)) 
+                    summarise(CV2c = mean((SDc/Mc)^2, na.rm = T),  
+                              CV2e = mean((SDe/Me)^2, na.rm = T)) %>% 
+                              ungroup() %>% # ungroup 
+                              summarise(aCV2c = mean(CV2c, na.rm = T), # Mean CV^2 for exp and control groups across studies
+                              aCV2e = mean(CV2e, na.rm = T)) 
 
-effect <- lnRR_func(Mc = dat$Mc, 
+lnRR <-  # Calculate effect sizes
+                    lnRR_func(Mc = dat$Mc, 
+                    Nc = dat$Nc, 
+                    Me = dat$Me, 
+                    Ne = dat$Ne, 
+                    aCV2c = aCV2[[1]], 
+                    aCV2e = aCV2[[2]])
+
+
+
+
+var_lnRR <- ifelse(dat$Design == "Dependent", # Calculate sampling variance
+                    var_lnRR_dep(Mc = dat$Mc, 
                     Nc = dat$Nc, 
                     Me = dat$Me, 
                     Ne = dat$Ne, 
                     aCV2c = aCV2[[1]], 
                     aCV2e = aCV2[[2]],
-                    rho = 0.5)  # Calculate effect sizes
+                    rho = 0.5), 
+                    var_lnRR_ind(Mc = dat$Mc, 
+                    Nc = dat$Nc, 
+                    Me = dat$Me, 
+                    Ne = dat$Ne, 
+                    aCV2c = aCV2[[1]], 
+                    aCV2e = aCV2[[2]])) 
+
+
 
 dat <- dat %>% 
-             mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) # Calculate the effective sample size
+             mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) # getting effective sample size 
 
-dat <- cbind(dat, effect) # Merge effect sizes with the data frame
+dat <- cbind(dat, lnRR, var_lnRR) # Merge effect sizes with the data frame
 
 VCV_lnRR <- make_VCV_matrix(dat, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # Because some effect sizes share the same control, we generated a variance-covariance matrix to account for correlated errors (i.e. effectively dividing the weight of the correlated estimates by half)
 
