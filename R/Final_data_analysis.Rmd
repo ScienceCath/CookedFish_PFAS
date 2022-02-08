@@ -94,21 +94,25 @@ raw_data <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBa
 processed_data <- filter(raw_data, !PFAS_type == 'PFOS_Total')
 processed_data <- filter(processed_data, !Species_common == 'Fish cake')
 
-write.csv(processed_data, here("data", "Rawdata_updated.csv"), row.names = F)
+write.csv(processed_data, here("data", "Rawdata_updated_2.csv"), row.names = F)
 ```
 
 
 
 ### Load processed data
 ```{r}
-processed_data <- read.csv(here("data", "Rawdata_updated.csv")) 
+processed_data <- read.csv(here("data", "Rawdata_updated_2.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
 
-#### Ratio_liquid_fish with "0" for the dry cooking category
+dat <- dat %>% filter(Species_Scientific != "?")
 
+#### Ratio_liquid_fish with "0" for the dry cooking category
 dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid", 0, Ratio_liquid_fish)) # Add a 0 when the cooking category is "No liquid", otherwise keep the same value of Ratio_liquid_fish
+
+# taking out data without species information
+
 
 # arrange(select(dat, Cooking_Category, Ratio_liquid_fish, Ratio_liquid_fish_0), Cooking_Category) # Checking everything is fine
 
@@ -130,10 +134,15 @@ tree <- compute.brlen(tree) # Generate branch lengths
 
 cor_tree <- vcv(tree,corr = T) # Generate phylogenetic variance-covariance matrix 
 
-dat$Phylogeny <- str_replace(dat$Species_Scientific, " ", "_") # Add the `phylogeny` column to the data frame
+dat$Phylogeny <- as.factor(str_replace(dat$Species_Scientific, " ", "_")) # Add the `phylogeny` column to the data frame
 
 colnames(cor_tree) %in% dat$Phylogeny # Check correspondence between tip names and data frame
 
+# checking all species are in the data
+#match(unique(dat$Phylogeny),colnames(cor_tree))
+match(dat$Phylogeny, colnames(cor_tree))
+
+# plotting tree
 plot(tree)
 ```
 
@@ -288,11 +297,12 @@ MA_model <- rma.mv(lnRR, VCV_lnRR,
 summary(MA_model)
 round(i2_ml(MA_model)*100,2) # Percentage of heterogeneity explained by each random effect
 
-# plot
-orchard_plot(MA_model, mod = "Int", xlab = "lnRR", alpha=0.4) +  # Orchard plot 
-           geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
-           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0.05, show.legend = FALSE, size = 2)+ # confidence intervals
-           geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
+# plot 
+# TODO - Patrice - you may need to change several arguments with orchard plot!
+orchard_plot(MA_model, mod = "1", xlab = "lnRR", alpha=0.4, data = dat, group = "Study_ID") +  # Orchard plot 
+#            geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
+#            geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0.05, show.legend = FALSE, size = 2)+ # confidence intervals
+#            geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
            scale_colour_manual(values = "darkorange")+ # change colours
            scale_fill_manual(values="darkorange")+ 
            scale_size_continuous(range = c(1, 7))+ # change point scaling
