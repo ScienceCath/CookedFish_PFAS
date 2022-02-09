@@ -116,7 +116,8 @@ dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid",
 
 # arrange(select(dat, Cooking_Category, Ratio_liquid_fish, Ratio_liquid_fish_0), Cooking_Category) # Checking everything is fine
 
-
+dat$Temperature_in_Celsius[dat$Temperature_in_Celsius=="?"] <- NA # Replace "?" by missing values
+dat$Temperature_in_Celsius <- as.numeric(dat$Temperature_in_Celsius) # Convert integer to numeric
 
 kable(dat, "html") %>% kable_styling("striped", position = "left") %>% scroll_box(width = "100%", height = "500px")
 ```
@@ -259,7 +260,7 @@ kable(summary(dat), "html") %>% kable_styling("striped", position = "left") %>%
 
 ## Determine the random effect structure
 
-`Cohort_ID` explains virtually no variance in the model. Hence, it was removed from the model. All the other random effects explained significant variance and were kept in subsequent models 
+`Cohort_ID` and `Phylogeny` explained virtually no variance in the model. Hence, they was removed from the model. All the other random effects explained significant variance and were kept in subsequent models 
 
 ```{r}
 
@@ -285,24 +286,18 @@ summary(MA_all_rand_effects) # Cohort ID does not explain any variance
 ```{r, fig.height=6, fig.width=9}
 MA_model <- rma.mv(lnRR, VCV_lnRR, 
               random = list(~1|Study_ID,
-                            ~1|Phylogeny, # Removed Cohort_ID
-                            ~1|Species_common, 
+                            ~1|Species_common, # Removed Cohort_ID and phylogeny
                             ~1|PFAS_type, 
                             ~1|Effect_ID), 
-              R= list(Phylogeny = cor_tree), 
               test = "t", 
               data = dat,
-               sparse = TRUE)
+              sparse = TRUE)
 
 summary(MA_model)
 round(i2_ml(MA_model)*100,2) # Percentage of heterogeneity explained by each random effect
 
-# plot 
-# TODO - Patrice - you may need to change several arguments with orchard plot!
-orchard_plot(MA_model, mod = "1", xlab = "lnRR", alpha=0.4, data = dat, group = "Study_ID") +  # Orchard plot 
-#            geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
-#            geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0.05, show.legend = FALSE, size = 2)+ # confidence intervals
-#            geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
+
+orchard_plot(MA_model, mod = "1", xlab = "lnRR", alpha=0.4, data = dat, group = "Study_ID", trunk.size=9, branch.size = 2) +  
            scale_colour_manual(values = "darkorange")+ # change colours
            scale_fill_manual(values="darkorange")+ 
            scale_size_continuous(range = c(1, 7))+ # change point scaling
@@ -340,11 +335,9 @@ run_model<-function(data,formula){
   rma.mv(lnRR, VCV, # run the model, as described earlier
          mods=formula,
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = data,
          sparse=TRUE) # Make the model run faster
@@ -353,7 +346,7 @@ run_model<-function(data,formula){
 ```
 
 
-## Function to run plots with the same structure
+## Functions to run plots with the same structure
 
 ```{r}
 plot_continuous<-function(data, model, moderator, xlab){
@@ -479,10 +472,8 @@ summary(category_model)
 r2_ml(category_model)
 
 # plot
-orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR", alpha=0.4)+
-           geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = FALSE, size = 1.1, alpha = 0.5)+ # prediction intervals
-           geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = FALSE, size = 2)+ # confidence intervals
-           geom_point(aes(fill = name),  size = 5, shape = 21)+ # mean estimate
+
+orchard_plot(category_model, mod = "Cooking_Category", xlab = "lnRR", alpha=0.4, data = dat, group = "Study_ID", trunk.size=9, branch.size = 2) +  
            scale_colour_manual(values = c("#55C667FF", "goldenrod2", "dodgerblue3"))+ # change colours
            scale_fill_manual(values=c("#55C667FF", "goldenrod2", "dodgerblue3"))+ 
            scale_size_continuous(range = c(1, 7))+ # change point scaling
@@ -565,11 +556,9 @@ full_model  <- rma.mv(yi = lnRR, V = VCV_lnRR,
                                scale(PFAS_carbon_chain) +
                                scale(log(Ratio_liquid_fish)),
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = dat,
          sparse = TRUE)
@@ -592,11 +581,9 @@ full_model0  <- rma.mv(yi = lnRR, V = VCV_lnRR,
                                scale(PFAS_carbon_chain) +
                                scale(log(Ratio_liquid_fish_0+1)),
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree), 
          test = "t", 
          data = dat,
          sparse = TRUE)
@@ -703,16 +690,30 @@ summary(full_model_org_units_dry)
 
 ### Overall mean with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
-```{r}
-res<-marginal_means(model = full_model_org_units, data=dat, mod="1") 
+```{r, fig.width=10, fig.height=7}
+res<-mod_results(model = full_model_org_units, data=dat, group="Study_ID", mod="1") 
 res$mod_table
+
+orchard_plot(res, mod="1", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ### Overall mean with Ratio_liquid_fish taken as `0` for the dry cooking category
 
-```{r}
-res0<-marginal_means(model = full_model_org_units0, data=dat, mod="1") 
+```{r, fig.width=10, fig.height=7}
+res0<-mod_results(model = full_model_org_units0, data=dat, group="Study_ID",mod="1") 
 res0$mod_table
+
+orchard_plot(res0, mod="1", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 
@@ -721,19 +722,29 @@ res0$mod_table
 ### Overall mean for the water- and oil-based cooking
 
 ```{r, fig.width=10, fig.height=7}
-res_cat<-marginal_means(full_model_org_units, data = dat, mod = "1", by = "Cooking_Category")
+res_cat<-mod_results(full_model_org_units, data = dat, mod = "1", group="Study_ID",by = "Cooking_Category")
 res_cat$mod_table
 
-orchard_plot(res_cat, xlab = "lnRR", condition.lab = "Cooking Category" )
+orchard_plot(res_cat, mod="1", condition.lab="Cooking Category", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ### Overall mean for the dry cooking
 
 ```{r, fig.width=10, fig.height=7}
-res_dry<-marginal_means(full_model_org_units_dry, data = dat, mod = "1")
+res_dry<-mod_results(full_model_org_units_dry, data = dat, group="Study_ID", mod = "1")
 res_dry$mod_table
 
-orchard_plot(res_dry, xlab = "lnRR", condition.lab = "Cooking Category" )
+orchard_plot(res_dry, mod="1", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 
@@ -744,40 +755,60 @@ Here, we generate estimates at cooking times of 2, 10, and 25 min.
 ### Marginal means for pre-determined cooking times, with Ratio_liquid_fish taken as `NA` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
-res_cooking_time <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time <-mod_results(full_model_org_units, data = dat, mod = "1", group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time$mod_table
 
-orchard_plot(res_cooking_time, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+orchard_plot(res_cooking_time, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
+
 ```
 
 ### Marginal means for pre-determined cooking times, with Ratio_liquid_fish taken as `0` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
-res_cooking_time0 <-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time0 <-mod_results(full_model_org_units0, data = dat, mod = "1", group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time0$mod_table
 
-orchard_plot(res_cooking_time0, xlab = "lnRR", condition.lab = "Cooking time (sec)")
+orchard_plot(res_cooking_time0, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 
 ### Marginalised means for the water- and oil-based cooking categories 
 
 ```{r, fig.width=10, fig.height=7}
-res_cooking_time_cat <-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time_cat <-mod_results(full_model_org_units, data = dat, mod = "Cooking_Category", group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time_cat$mod_table
 
-orchard_plot(res_cooking_time_cat, xlab = "lnRR", condition.lab = "Cooking time (sec)")
 
+orchard_plot(res_cooking_time_cat, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ### Marginalised means for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
-res_cooking_time_dry <-marginal_means(full_model_org_units_dry, data = dat, at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time_dry <-mod_results(full_model_org_units_dry, data = dat, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time_dry$mod_table
 
-orchard_plot(res_cooking_time_dry, xlab = "lnRR", condition.lab = "Cooking time (sec)")
-
+orchard_plot(res_cooking_time_dry, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left", k.pos="left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 
@@ -789,10 +820,15 @@ Here, we generate marginalised estimates at volumes of liquid of ~0.1mL/g of tis
 We also only used the data on oil and water because the "No liquid" category is not relevant for this analysis when considering Ratio_liquid_fish as NA. 
 
 ```{r, fig.width=10, fig.height=7}
-res_volume<-marginal_means(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", at = list(log_Ratio_liquid_fish = c(log(0.1), log(10), log(45))), by = "log_Ratio_liquid_fish")
+res_volume<-mod_results(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish = c(log(0.1), log(10), log(45))), by = "log_Ratio_liquid_fish")
 res_volume$mod_table
 
-orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(Liquid volume to tissue sample ratio) (mL/g)")
+orchard_plot(res_volume, mod="1", condition.lab="ln(Liquid volume to tissue sample ratio) (mL/g)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 12),
+                 legend.text = element_text(size = 10))
 ```
 
 ### Ratio_liquid_fish taken as 0 for the dry cooking category
@@ -800,10 +836,15 @@ orchard_plot(res_volume, xlab = "lnRR", condition.lab = "ln(Liquid volume to tis
 Here, we generate marginalised estimates at volumes of liquid of 0mL/g of tissue (dry cooking), ~10 ml/g of tissue, or 45 mL/g of tissue.
 
 ```{r, fig.width=10, fig.height=7}
-res_volume0 <- marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(log_Ratio_liquid_fish0 = c(0, log(10 + 1), log(45 + 1))), by = "log_Ratio_liquid_fish0")
+res_volume0 <- mod_results(full_model_org_units0, data = dat, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish0 = c(0, log(10 + 1), log(45 + 1))), by = "log_Ratio_liquid_fish0")
 res_volume0$mod_table
 
-orchard_plot(res_volume0, xlab = "lnRR", condition.lab = "ln(Liquid volume to tissue sample ratio) (mL/g)")
+orchard_plot(res_volume0, mod="1", condition.lab="ln(Liquid volume to tissue sample ratio) (mL/g)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 12),
+                 legend.text = element_text(size = 10))
 ```
 
 ## Marginal means for different PFAS carbon chains
@@ -813,29 +854,44 @@ orchard_plot(res_volume0, xlab = "lnRR", condition.lab = "ln(Liquid volume to ti
 Here, we generate marginalized estimates for PFAS of 3, 6, and 12 carbon chains
 
 ```{r, fig.width=10, fig.height=7}
-res_PFAS<-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS<-mod_results(full_model_org_units, data = dat, mod = "1", group="Study_ID",at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
 res_PFAS$mod_table
 
-orchard_plot(res_PFAS, xlab = "lnRR", condition.lab = "PFAS carbon chain")
+orchard_plot(res_PFAS, mod="1", condition.lab="PFAS carbon chain", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ### Overall mean at the mean of each other predictor, with Ratio_liquid_fish taken as `0` for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
-res_PFAS0<-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS0<-mod_results(full_model_org_units0, data = dat, mod = "1", group="Study_ID", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
 res_PFAS0$mod_table
 
-orchard_plot(res_PFAS0, xlab = "lnRR", condition.lab = "PFAS carbon chain")
+orchard_plot(res_PFAS0, mod="1", condition.lab="PFAS carbon chain", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 
 ### Marginalised mean estimate for the water- and oil-based cooking categories
 
 ```{r, fig.width=10, fig.height=7}
-res_PFAS_cat<-marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
+res_PFAS_cat<-mod_results(full_model_org_units, data = dat, mod = "Cooking_Category", group="Study_ID", at = list(PFAS_carbon_chain= c(3, 6, 12)), by = "PFAS_carbon_chain")
 res_PFAS_cat$mod_table
 
-orchard_plot(res_PFAS_cat, xlab = "lnRR", condition.lab = "PFAS carbon chain")
+orchard_plot(res_PFAS_cat, mod="1", condition.lab="PFAS carbon chain", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 7))+ # change point scaling
+           theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
+                 text = element_text(size = 24), # change font sizes
+                 legend.title = element_text(size = 15),
+                 legend.text = element_text(size = 13))
 ```
 
 ##
@@ -1582,7 +1638,7 @@ plot_continuous(dat, pub_year, dat$Publication_year, "Publication year")
  
 ## Leave-one-out analyses 
  
-Here, we iteratively removed one study at the time and investigated how it affects the overall mean. Removing one of the study particularly modifies the estimate, but none of these models show a significant overall difference in PFAS concentration with cooking.
+Here, we iteratively removed one study at the time and investigated how it affects the overall mean. Removing one specific study particularly modifies the estimate, but none of these models show a significant overall difference in PFAS concentration with cooking.
 
  
 ```{r}
@@ -1594,11 +1650,9 @@ for(i in 1:length(levels(dat$Study_ID))){ # N models = N studies
   VCV_matrix[[i]]<-make_VCV_matrix(dat[dat$Study_ID != levels(dat$Study_ID)[i], ], V="var_lnRR", cluster="Cohort_ID", obs="Effect_ID") # Create a new VCV matrix for each new model
   Leave1studyout[[i]] <- rma.mv(yi = lnRR, V = VCV_matrix[[i]], # Same model structure as all the models we fitted
                                 random = list(~1|Study_ID,
-                                              ~1|Phylogeny, 
                                               ~1|Species_common, 
                                               ~1|PFAS_type, 
                                               ~1|Effect_ID),
-                                R= list(Phylogeny = cor_tree), 
                                 test = "t", 
                                 data = dat[dat$Study_ID != levels(dat$Study_ID)[i], ]) # Generate a new model for each new data (iterative removal of one study at a time)
 }
@@ -1628,20 +1682,15 @@ dat %>% group_by(Author_year, Study_ID) %>% summarise(mean=mean(lnRR)) # Study F
 
 dat.sens<-filter(dat, Author_year!="DelGobbo_2008")
 
-include <- row.names(cor_tree) %in% dat.sens$Phylogeny # Check which rows are present in the phylogenetic tree 
-cor_tree_sens <- cor_tree[include, include] # Only include the species that match the reduced data set 
-
   dat.sens<-as.data.frame(dat.sens) # convert data set into a data frame to calculate VCV matrix 
   VCV_lnRR.sens<-make_VCV_matrix(dat.sens, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
   
 mod.sens<- rma.mv(lnRR, VCV_lnRR.sens, 
          mods=~Length_cooking_time_in_s,
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree_sens), 
          test = "t", 
          data = dat.sens)
 summary(mod.sens)
@@ -1805,19 +1854,15 @@ ggplot(dat.sens,aes(x = Length_cooking_time_in_s, y = lnRR, fill=Cooking_Categor
 
 ```{r, fig.height=8, fig.width=10}
 dat.sens.vol<-filter(dat.sens, Ratio_liquid_fish!="NA")
-include <- row.names(cor_tree) %in% dat.sens.vol$Phylogeny # Check which rows are present in the phylogenetic tree 
-cor_tree_sens.vol <- cor_tree[include, include] # Only include the species that match the reduced data set 
 VCV_lnRR.sens.vol<-make_VCV_matrix(dat.sens.vol, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
 
 
 mod.sens.vol<- rma.mv(lnRR, VCV_lnRR.sens.vol, 
          mods=~ log(Ratio_liquid_fish),
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree_sens.vol), 
          test = "t", 
          data = dat.sens.vol)
 summary(mod.sens.vol)
@@ -1831,19 +1876,15 @@ plot_continuous(dat.sens.vol, mod.sens.vol, log(dat.sens.vol$Ratio_liquid_fish),
 
 ```{r, fig.height=8, fig.width=10}
 dat.sens.vol0<-filter(dat.sens, Ratio_liquid_fish_0!="NA")
-include <- row.names(cor_tree) %in% dat.sens.vol0$Phylogeny # Check which rows are present in the phylogenetic tree 
-cor_tree_sens.vol0 <- cor_tree[include, include] # Only include the species that match the reduced data set 
 VCV_lnRR.sens.vol0<-make_VCV_matrix(dat.sens.vol0, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
 
 
 mod.sens.vol0<- rma.mv(lnRR, VCV_lnRR.sens.vol0, 
          mods=~ log(Ratio_liquid_fish_0 + 1),
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree_sens.vol0), 
          test = "t", 
          data = dat.sens.vol0)
 summary(mod.sens.vol0)
@@ -1977,19 +2018,15 @@ ggplot(dat.sens,aes(x = log(Ratio_liquid_fish), y = lnRR, fill=Cooking_Category)
 
 ```{r, fig.width=9, fig.height=7}
 dat.sens.PFAS<-filter(dat.sens, PFAS_carbon_chain!="NA")
-include <- row.names(cor_tree) %in% dat.sens.PFAS$Phylogeny # Check which rows are present in the phylogenetic tree 
-cor_tree_sens.PFAS <- cor_tree[include, include] # Only include the species that match the reduced data set 
 VCV_lnRR.sens.PFAS<-make_VCV_matrix(dat.sens.PFAS, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # create VCV matrix for the specified data
 
 
 mod.sens.PFAS<- rma.mv(lnRR, VCV_lnRR.sens.PFAS, 
          mods=~ PFAS_carbon_chain,
          random = list(~1|Study_ID,
-                       ~1|Phylogeny, 
                        ~1|Species_common, 
                        ~1|PFAS_type, 
                        ~1|Effect_ID), 
-         R= list(Phylogeny = cor_tree_sens.PFAS), 
          test = "t", 
          data = dat.sens.PFAS)
 summary(mod.sens.PFAS)
@@ -2555,96 +2592,162 @@ ggsave("fig/Fig_2_zero_ratio.png", width=15, height=12, dpi=1200)
 
 ## Figure 3 
 
-### Adapt orchard_plot function 
+### Adapt orchard_plot function
 
 ```{r}
-my_orchard<-function (object, mod = "Int", xlab, N = "none", 
-    alpha = 0.5, angle = 90, cb = FALSE, transfm = c("none", 
-        "tanh"), condition.lab = "Condition") 
+my_orchard<- function (object, mod = "1", group, data, xlab, N = "none", 
+    alpha = 0.5, angle = 90, cb = FALSE, k = TRUE, g = TRUE, 
+    trunk.size = 3, branch.size = 1.2, twig.size = 0.5, transfm = c("none", 
+        "tanh"), condition.lab = "Condition", legend.pos = c("bottom.right", 
+        "bottom.left", "top.right", "top.left", 
+        "top.out", "bottom.out"), k.pos = c("right", 
+        "left"), weights = "prop", by = NULL, at = NULL) 
 {
-    transfm <- match.arg(transfm)
+    transfm <- match.arg(NULL, choices = transfm)
+    legend.pos <- match.arg(NULL, choices = legend.pos)
+    k.pos <- match.arg(NULL, choices = k.pos)
     if (any(class(object) %in% c("rma.mv", "rma"))) {
-        if (mod != "Int") {
-            object <- mod_results(object, mod)
+        if (mod != "1") {
+            results <- orchaRd::mod_results(object, mod, group, 
+                data, by = by, at = at, weights = weights)
         }
         else {
-            object <- mod_results(object, mod = "Int")
+            results <- orchaRd::mod_results(object, mod = "1", 
+                group, data, by = by, at = at, weights = weights)
         }
     }
-    mod_table <- object$mod_table
-    data <- object$data
-    data$moderator <- factor(data$moderator, levels = mod_table$name, 
+    if (any(class(object) %in% c("orchard"))) {
+        results <- object
+    }
+    mod_table <- results$mod_table
+    data_trim <- results$data
+    data_trim$moderator <- factor(data_trim$moderator, levels = mod_table$name, 
         labels = mod_table$name)
-    data$scale <- (1/sqrt(data[, "vi"]))
+    data_trim$scale <- (1/sqrt(data_trim[, "vi"]))
     legend <- "Precision (1/SE)"
     if (any(N != "none")) {
-        data$scale <- N
-        legend <- "Sample Size (N)"
+        data_trim$scale <- N
+        legend <- paste0("Sample Size (", "N", ")")
     }
     if (transfm == "tanh") {
         cols <- sapply(mod_table, is.numeric)
         mod_table[, cols] <- Zr_to_r(mod_table[, cols])
-        data$yi <- Zr_to_r(data$yi)
+        data_trim$yi <- Zr_to_r(data_trim$yi)
         label <- xlab
     }
     else {
         label <- xlab
     }
-    mod_table$K <- as.vector(by(data, data[, "moderator"], 
+    mod_table$K <- as.vector(by(data_trim, data_trim[, "moderator"], 
         function(x) length(x[, "yi"])))
+    mod_table$g <- as.vector(num_studies(data_trim, moderator, 
+        stdy)[, 2])
     group_no <- length(unique(mod_table[, "name"]))
-    cbpl <- c("#55C667FF", "goldenrod2", "dodgerblue3") # change colors
+    cbpl <- c("#88CCEE", "#CC6677", "#DDCC77", 
+        "#117733", "#332288", "#AA4499", "#44AA99", 
+        "#999933", "#882255", "#661100", "#6699CC", 
+        "#888888", "#E69F00", "#56B4E9", "#009E73", 
+        "#F0E442", "#0072B2", "#D55E00", "#CC79A7", 
+        "#999999")
     if (names(mod_table)[2] == "condition") {
         condition_no <- length(unique(mod_table[, "condition"]))
-        plot <- ggplot2::ggplot() + ggbeeswarm::geom_quasirandom(data = data, 
+        plot <- ggplot2::ggplot() + ggbeeswarm::geom_quasirandom(data = data_trim, 
             ggplot2::aes(y = yi, x = moderator, size = scale, 
-                color = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
+                colour = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
             linetype = 2, colour = "black", alpha = alpha) + 
             ggplot2::geom_linerange(data = mod_table, ggplot2::aes(x = name, 
-                ymin = lowerPR, ymax = upperPR), size = 0.75, # change size confidence intervals and swap CL with PR. Added whiskers
+                ymin = lowerCL, ymax = upperCL), size = branch.size, 
                 position = ggplot2::position_dodge2(width = 0.3)) + 
             ggplot2::geom_pointrange(data = mod_table, ggplot2::aes(y = estimate, 
-                x = name, ymin = lowerCL, ymax = upperCL, shape = as.factor(condition), # swap CL with PR
-                fill = name), size = 1.6, stroke=2.2, width= 1.3, position = ggplot2::position_dodge2(width = 0.3)) + # change size point and prediction intervals
-            ggplot2::scale_shape_manual(values = 20 + (1:condition_no)) + 
+                x = name, ymin = lowerPR, ymax = upperPR, shape = as.factor(condition), 
+                fill = name), size = twig.size, stroke=2.2,position = ggplot2::position_dodge2(width = 0.3), # Added stroke
+                fatten = trunk.size) + ggplot2::scale_shape_manual(values = 20 + 
+            (1:condition_no)) + ggplot2::coord_flip() + ggplot2::theme_bw() + 
+            ggplot2::guides(fill = "none", colour = "none") + 
+            ggplot2::theme(legend.position = c(0, 1), legend.justification = c(0, 
+                1)) + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
+            ggplot2::theme(legend.direction = "horizontal") + 
+            ggplot2::theme(legend.background = ggplot2::element_blank()) + 
+            ggplot2::labs(y = label, x = "", size = legend, 
+                parse = TRUE) + ggplot2::labs(shape = condition.lab) + 
+            ggplot2::theme(axis.text.y = ggplot2::element_text(size = 10, 
+                colour = "black", hjust = 0.5, angle = angle))
+    }
+    else {
+        plot <- ggplot2::ggplot() + ggbeeswarm::geom_quasirandom(data = data_trim, 
+            ggplot2::aes(y = yi, x = moderator, size = scale, 
+                colour = moderator), alpha = alpha) + ggplot2::geom_hline(yintercept = 0, 
+            linetype = 2, colour = "black", alpha = alpha) + 
+            ggplot2::geom_linerange(data = mod_table, ggplot2::aes(x = name, 
+                ymin = lowerCL, ymax = upperCL), size = branch.size) + 
+            ggplot2::geom_pointrange(data = mod_table, ggplot2::aes(y = estimate, 
+                x = name, ymin = lowerPR, ymax = upperPR, fill = name), 
+                size = twig.size, fatten = trunk.size, shape = 21) + 
             ggplot2::coord_flip() + ggplot2::theme_bw() + ggplot2::guides(fill = "none", 
-            colour = "none") + ggplot2::theme(legend.position = c(0, 
-            1), legend.justification = c(0, 1)) + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
+            colour = "none") + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
             ggplot2::theme(legend.direction = "horizontal") + 
             ggplot2::theme(legend.background = ggplot2::element_blank()) + 
             ggplot2::labs(y = label, x = "", size = legend) + 
-            ggplot2::labs(shape = condition.lab) + ggplot2::theme(axis.text.y = ggplot2::element_text(size = 10, 
-            colour = "black", hjust = 0.5, angle = angle))
-    }
-    else {
-        plot <- ggplot2::ggplot(data = mod_table, ggplot2::aes(x = estimate, 
-            y = name)) + ggbeeswarm::geom_quasirandom(data = data, 
-            ggplot2::aes(x = yi, y = moderator, size = scale, 
-                colour = moderator), groupOnX = FALSE, alpha = alpha) + 
-            ggplot2::geom_errorbarh(ggplot2::aes(xmin = lowerPR, 
-                xmax = upperPR), height = 0, show.legend = FALSE, # change error barrs
-                size = 0.75, alpha = 0.5) + ggplot2::geom_errorbarh(ggplot2::aes(xmin = lowerCL, 
-            xmax = upperCL), height = 0.1, show.legend = FALSE, 
-            size = 1.75) + ggplot2::geom_vline(xintercept = 0, 
-            linetype = 2, colour = "black", alpha = alpha) + 
-            ggplot2::geom_point(ggplot2::aes(fill = name), size = 8,  # change point size
-                shape = 21) + ggplot2::theme_bw() + ggplot2::guides(fill = "none", 
-            colour = "none") + ggplot2::theme(legend.position = c(1, 
-            0), legend.justification = c(1, 0)) + ggplot2::theme(legend.title = ggplot2::element_text(size = 9)) + 
-            ggplot2::theme(legend.direction = "horizontal") + 
-            ggplot2::theme(legend.background = ggplot2::element_blank()) + 
-            ggplot2::labs(x = label, y = "", size = legend) + 
             ggplot2::theme(axis.text.y = ggplot2::element_text(size = 10, 
                 colour = "black", hjust = 0.5, angle = angle))
-
+    }
+    if (legend.pos == "bottom.right") {
+        plot <- plot + ggplot2::theme(legend.position = c(1, 
+            0), legend.justification = c(1, 0))
+    }
+    else if (legend.pos == "bottom.left") {
+        plot <- plot + ggplot2::theme(legend.position = c(0, 
+            0), legend.justification = c(0, 0))
+    }
+    else if (legend.pos == "top.right") {
+        plot <- plot + ggplot2::theme(legend.position = c(1, 
+            1), legend.justification = c(1, 1))
+    }
+    else if (legend.pos == "top.left") {
+        plot <- plot + ggplot2::theme(legend.position = c(0, 
+            1), legend.justification = c(0, 1))
+    }
+    else if (legend.pos == "top.out") {
+        plot <- plot + ggplot2::theme(legend.position = "top")
+    }
+    else if (legend.pos == "bottom.out") {
+        plot <- plot + ggplot2::theme(legend.position = "bottom")
     }
     if (cb == TRUE) {
         plot <- plot + ggplot2::scale_fill_manual(values = cbpl) + 
             ggplot2::scale_colour_manual(values = cbpl)
     }
+    if (k == TRUE && g == FALSE && k.pos == "right") {
+        plot <- plot + ggplot2::annotate("text", y = (max(data_trim$yi) + 
+            (max(data_trim$yi) * 0.1)), x = (seq(1, group_no, 
+            1) + 0.3), label = paste("italic(k)==", mod_table$K[1:group_no]), 
+            parse = TRUE, hjust = "right", size = 3.5)
+    }
+    else if (k == TRUE && g == FALSE && k.pos == "left") {
+        plot <- plot + ggplot2::annotate("text", y = (min(data_trim$yi) + 
+            (min(data_trim$yi) * 0.1)), x = (seq(1, group_no, 
+            1) + 0.3), label = paste("italic(k)==", mod_table$K[1:group_no]), 
+            parse = TRUE, hjust = "left", size = 3.5)
+    }
+    else if (k == TRUE && g == TRUE && k.pos == "right") {
+        plot <- plot + ggplot2::annotate("text", y = (max(data_trim$yi) + 
+            (max(data_trim$yi) * 0.1)), x = (seq(1, group_no, 
+            1) + 0.3), label = paste("italic(k)==", mod_table$K[1:group_no], 
+            " (", mod_table$g[1:group_no], ")"), 
+            parse = TRUE, hjust = "right", size = 3.5)
+    }
+    else if (k == TRUE && g == TRUE && k.pos == "left") {
+        plot <- plot + ggplot2::annotate("text", y = (min(data_trim$yi) + 
+            (min(data_trim$yi) * 0.1)), x = (seq(1, group_no, 
+            1) + 0.3), label = paste("italic(k)==", mod_table$K[1:group_no], 
+            " (", mod_table$g[1:group_no], ")"), 
+            parse = TRUE, hjust = "left", size = 3.5)
+    }
     return(plot)
 }
 ```
+
+
 
 ### Run full models in original units
 
@@ -2679,17 +2782,16 @@ full_model_org_units_oil_water <- run_model(dat_oil_water, ~ - 1 +
 
 Estimates at cooking times of 2, 10 and 25 min
 ```{r, fig.height=5, fig.width=7}
-time_mm <-marginal_means(full_model_org_units, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+time_mm <-mod_results(full_model_org_units, data = dat, mod = "1", group="Study_ID", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.3)+
+p_time_mm<-my_orchard(time_mm, xlab = "lnRR", mod="1", condition.lab = "Cooking time (sec)", group="Study_ID", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left")+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
-                 legend.text = element_text(size = 10),
-                 legend.position = c(0,0.13))+
+                 legend.text = element_text(size = 10))+
           guides(size=F)
 ```
 
@@ -2697,17 +2799,16 @@ p_time_mm<-my_orchard(time_mm, xlab = "lnRR", condition.lab = "Cooking time (sec
 
 Estimates at 0 mL/g of tissue, 10 mL/g of tissue or 45 mL/g of tissue
 ```{r, fig.height=5, fig.width=7}
-volume_mm <-marginal_means(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", at = list(log_Ratio_liquid_fish= c(-2.3, 2.3, 3.8)), by = "log_Ratio_liquid_fish")
+volume_mm <-mod_results(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish= c(-2.3, 2.3, 3.8)), by = "log_Ratio_liquid_fish")
  
-p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln (Liquid to sample ratio)", alpha=0.3)+
+p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln (Liquid to sample ratio)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left")+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
-                 legend.text = element_text(size = 10),
-                 legend.position = c(0,0.13))+
+                 legend.text = element_text(size = 10))+
            guides(size=F)
 ```
 
@@ -2720,17 +2821,16 @@ Estimates at cooking times of 2, 10 and 25 min
 
 ```{r, fig.height=10, fig.width=8}
 
-time_mm_cat <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+time_mm_cat <- mod_results(full_model_org_units, data = dat, mod = "Cooking_Category", group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm_cat<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.3)+
-           scale_size_continuous(range = c(1, 10))+
+p_time_mm_cat<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left")+
+           scale_size_continuous(range = c(1, 10), breaks=c(2,4,6))+
            scale_fill_manual(values=c("goldenrod2", "dodgerblue3"))+
            scale_colour_manual(values = c("goldenrod2", "dodgerblue3"))+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
-                 legend.text = element_text(size = 10),
-                 legend.position = c(0,0.12))
+                 legend.text = element_text(size = 10))
 ```
 
 #### Combine plots and save
@@ -2750,41 +2850,39 @@ ggsave("fig/Fig_3.png", width=14, height=10, dpi=1200)
 
 Estimates at cooking times of 2, 10 and 25 min
 ```{r, fig.height=5, fig.width=7}
-time_mm0 <-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+time_mm0 <-mod_results(full_model_org_units0, data = dat, mod = "1", group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm0<-my_orchard(time_mm0, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.3)+
-           scale_size_continuous(range = c(1, 10))+
+p_time_mm0<-my_orchard(time_mm0, xlab = "lnRR", condition.lab = "Cooking time (sec)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left", k=F)+
+           scale_size_continuous(range = c(1, 10), breaks=c(2,4,6))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
-                 legend.text = element_text(size = 10),
-                 legend.position = c(0,0.25))+
+                 legend.text = element_text(size = 10))+
            ylim(-6.05, 3)+
-           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 431), 
-            parse = TRUE, hjust = "right", size = 3.5)
+           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 439), parse = TRUE, hjust = "right", size = 3.5) +
+           annotate("text", y = 2.3, x = 1.299, label = paste("(7)"), parse = TRUE, hjust = "right", size = 3.5) 
 ```
 
 #### Figure 3B
 
 Estimates at 0.1 mL/g of tissue, 10 mL/g of tissue or 45 mL/g of tissue
 ```{r, fig.height=5, fig.width=7}
-volume_mm0 <-marginal_means(full_model_org_units0, data = dat, mod = "1", at = list(log_Ratio_liquid_fish0= c(0, 2.4, 3.8)), by = "log_Ratio_liquid_fish0")
+volume_mm0 <-mod_results(full_model_org_units0, data = dat, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish0= c(0, 2.4, 3.8)), by = "log_Ratio_liquid_fish0")
  
-p_volume_mm0<-my_orchard(volume_mm0, xlab = "lnRR", condition.lab = "ln (Liquid/animal tissue ratio + 1) (mL/g)", alpha=0.3)+
+p_volume_mm0<-my_orchard(volume_mm0, xlab = "lnRR", condition.lab = "ln (Liquid/animal tissue ratio + 1) (mL/g)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left", k=F)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 13),
-                 legend.text = element_text(size = 10),
-                 legend.position = c(0,0.13))+
+                 legend.text = element_text(size = 10))+
           guides(size=F)+
            ylim(-6.05, 3)+
-           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 431), 
-            parse = TRUE, hjust = "right", size = 3.5)
+           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 439), parse = TRUE, hjust = "right", size = 3.5) +
+           annotate("text", y = 2.3, x = 1.297, label = paste("(7)"), parse = TRUE, hjust = "right", size = 3.5) 
 ```
 
 
@@ -2797,9 +2895,9 @@ In this case, water- and oil-based cooking must be separated from dry cooking to
 
 ```{r, fig.height=10, fig.width=8}
 
-time_mm_cat <- marginal_means(full_model_org_units, data = dat, mod = "Cooking_Category", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+time_mm_cat <- mod_results(full_model_org_units, data = dat, mod = "Cooking_Category", group="Study_ID", at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
  
-p_time_mm_wat_oil<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.3)+
+p_time_mm_wat_oil<-my_orchard(time_mm_cat ,xlab = "lnRR", group="Study_ID", condition.lab  = "Cooking time (sec)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left", k=F)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values=c("goldenrod2", "dodgerblue3"))+
            scale_colour_manual(values = c("goldenrod2", "dodgerblue3"))+ # change colours
@@ -2810,12 +2908,11 @@ p_time_mm_wat_oil<-my_orchard(time_mm_cat, xlab = "lnRR", condition.lab  = "Cook
                  legend.position = "none")+ 
            guides(shape=F, size=F)+
            ylim(-6.1, 3)+
-           annotate("text", y = 1.9, x = (seq(1, 2, 1) + 
-            0.3), label = paste("italic(k)==", c(263, 121)), 
-            parse = TRUE, hjust = "right", size = 3.5)
+           annotate("text", y = 1.9, x = (seq(1, 2, 1) + 0.301), label = paste("italic(k)==", c(267, 125)), parse = TRUE, hjust = "right", size = 3.5)+
+           annotate("text", y = 2.3, x = (seq(1, 2, 1) + 0.3), label = paste(c("(6)", "(6)")), parse = TRUE, hjust = "right", size = 3.5)
 
-time_mm_dry<-marginal_means(full_model_org_units_dry, data = dat, at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
-p_time_mm_dry<-my_orchard(time_mm_dry, xlab = "lnRR", condition.lab  = "Cooking time (sec)", alpha=0.3)+
+time_mm_dry<-mod_results(full_model_org_units_dry, data = dat, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+p_time_mm_dry<-my_orchard(time_mm_dry, xlab = "lnRR", group="Study_ID", condition.lab  = "Cooking time (sec)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left", k=F)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values=c("#55C667FF"))+
            scale_colour_manual(values = c("#55C667FF"))+ # change colours
@@ -2823,12 +2920,11 @@ p_time_mm_dry<-my_orchard(time_mm_dry, xlab = "lnRR", condition.lab  = "Cooking 
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 12),
                  legend.text = element_text(size = 10),
-                 legend.position = c(0.02,0.14),
                  legend.margin=margin(1,1,1,1))+ 
            guides(size=F)+
            ylim(-6.05, 3)+
-           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 47), 
-            parse = TRUE, hjust = "right", size = 3.5)
+           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 47), parse = TRUE, hjust = "right", size = 3.5)+
+           annotate("text", y = 2.3, x = 1.299, label = paste("(3)"), parse = TRUE, hjust = "right", size = 3.5)
 
 
 p_time_mm_cat<-p_time_mm_wat_oil/p_time_mm_dry + plot_layout(heights=c(2,1))
