@@ -4,7 +4,7 @@ author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Ma
 date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
 output: rmdformats::material
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 subtitle: ""
 ---
 # **Packages and custom functions**
@@ -84,29 +84,15 @@ var_lnRR_dep <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
 
 ## Import and process raw data 
 
-### Import raw data
-```{r, eval=F}
-raw_data <- read_sheet("https://docs.google.com/spreadsheets/d/1cbmYDfIc2dxHJxBaowojUZZkN31NW4sL_pHw0t9eTTU/edit#gid=477880397", range = "Data_extraction_2", skip=1, col_types = "ccncccccncncccccnncccnccnncncnccnnncncncccccccc") # Import raw data
-```
-
-### Process raw data
-```{r, eval=F}
-processed_data <- filter(raw_data, !PFAS_type == 'PFOS_Total')
-processed_data <- filter(processed_data, !Species_common == 'Fish cake')
-
-write.csv(processed_data, here("data", "Rawdata_updated_2.csv"), row.names = F)
-```
-
-
-
-### Load processed data
 ```{r}
 processed_data <- read.csv(here("data", "Rawdata_updated_2.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
 
-dat <- dat %>% filter(Species_Scientific != "?")
+dat <- dat %>% filter(Species_Scientific != "?") # Remove species without species names
+dat <- dat %>% filter(PFAS_type != "PFOS_Total") # Remove species without species names
+
 
 #### Ratio_liquid_fish with "0" for the dry cooking category
 dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid", 0, Ratio_liquid_fish)) # Add a 0 when the cooking category is "No liquid", otherwise keep the same value of Ratio_liquid_fish
@@ -118,6 +104,9 @@ dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid",
 
 dat$Temperature_in_Celsius[dat$Temperature_in_Celsius=="?"] <- NA # Replace "?" by missing values
 dat$Temperature_in_Celsius <- as.numeric(dat$Temperature_in_Celsius) # Convert integer to numeric
+
+dat$Study_ID[dat$Effect_ID=="E557"] # Two effect sizes have the same unique identifier
+dat$Effect_ID[dat$Effect_ID=="E557"&dat$Study_ID=="F013"]<- "E613"
 
 kable(dat, "html") %>% kable_styling("striped", position = "left") %>% scroll_box(width = "100%", height = "500px")
 ```
@@ -736,10 +725,10 @@ orchard_plot(res_cat, mod="1", condition.lab="Cooking Category", group= "Study_I
 ### Overall mean for the dry cooking
 
 ```{r, fig.width=10, fig.height=7}
-res_dry<-mod_results(full_model_org_units_dry, data = dat, group="Study_ID", mod = "1")
+res_dry<-mod_results(full_model_org_units_dry, data = dat_dry, group="Study_ID", mod = "1")
 res_dry$mod_table
 
-orchard_plot(res_dry, mod="1", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+orchard_plot(res_dry, mod="1", group= "Study_ID", xlab="lnRR", data=dat_dry, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
            scale_size_continuous(range = c(1, 7))+ # change point scaling
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
@@ -800,10 +789,10 @@ orchard_plot(res_cooking_time_cat, mod="1", condition.lab="Cooking time (sec)", 
 ### Marginalised means for the dry cooking category
 
 ```{r, fig.width=10, fig.height=7}
-res_cooking_time_dry <-mod_results(full_model_org_units_dry, data = dat, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+res_cooking_time_dry <-mod_results(full_model_org_units_dry, data = dat_dry, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 res_cooking_time_dry$mod_table
 
-orchard_plot(res_cooking_time_dry, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left", k.pos="left")+
+orchard_plot(res_cooking_time_dry, mod="1", condition.lab="Cooking time (sec)", group= "Study_ID", xlab="lnRR", data=dat_dry, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left", k.pos="left")+
            scale_size_continuous(range = c(1, 7))+ # change point scaling
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
@@ -823,7 +812,7 @@ We also only used the data on oil and water because the "No liquid" category is 
 res_volume<-mod_results(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish = c(log(0.1), log(10), log(45))), by = "log_Ratio_liquid_fish")
 res_volume$mod_table
 
-orchard_plot(res_volume, mod="1", condition.lab="ln(Liquid volume to tissue sample ratio) (mL/g)", group= "Study_ID", xlab="lnRR", data=dat, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
+orchard_plot(res_volume, mod="1", condition.lab="ln(Liquid volume to tissue sample ratio) (mL/g)", group= "Study_ID", xlab="lnRR", data=dat_oil_water, alpha=0.4, trunk.size = 9, branch.size = 2, legend.pos="bottom.left")+
            scale_size_continuous(range = c(1, 7))+ # change point scaling
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
@@ -2801,7 +2790,7 @@ Estimates at 0 mL/g of tissue, 10 mL/g of tissue or 45 mL/g of tissue
 ```{r, fig.height=5, fig.width=7}
 volume_mm <-mod_results(full_model_org_units_oil_water, data = dat_oil_water, mod = "1", group="Study_ID",at = list(log_Ratio_liquid_fish= c(-2.3, 2.3, 3.8)), by = "log_Ratio_liquid_fish")
  
-p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", condition.lab = "ln (Liquid to sample ratio)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left")+
+p_volume_mm<-my_orchard(volume_mm, xlab = "lnRR", data=dat_oil_water,condition.lab = "ln (Liquid to sample ratio)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left")+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values="gray75")+
            scale_colour_manual(values = "gray60")+ # change colours
@@ -2861,7 +2850,7 @@ p_time_mm0<-my_orchard(time_mm0, xlab = "lnRR", condition.lab = "Cooking time (s
                  legend.title = element_text(size = 13),
                  legend.text = element_text(size = 10))+
            ylim(-6.05, 3)+
-           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 439), parse = TRUE, hjust = "right", size = 3.5) +
+           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 431), parse = TRUE, hjust = "right", size = 3.5) +
            annotate("text", y = 2.3, x = 1.299, label = paste("(7)"), parse = TRUE, hjust = "right", size = 3.5) 
 ```
 
@@ -2881,7 +2870,7 @@ p_volume_mm0<-my_orchard(volume_mm0, xlab = "lnRR", condition.lab = "ln (Liquid/
                  legend.text = element_text(size = 10))+
           guides(size=F)+
            ylim(-6.05, 3)+
-           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 439), parse = TRUE, hjust = "right", size = 3.5) +
+           annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 431), parse = TRUE, hjust = "right", size = 3.5) +
            annotate("text", y = 2.3, x = 1.297, label = paste("(7)"), parse = TRUE, hjust = "right", size = 3.5) 
 ```
 
@@ -2908,10 +2897,10 @@ p_time_mm_wat_oil<-my_orchard(time_mm_cat ,xlab = "lnRR", group="Study_ID", cond
                  legend.position = "none")+ 
            guides(shape=F, size=F)+
            ylim(-6.1, 3)+
-           annotate("text", y = 1.9, x = (seq(1, 2, 1) + 0.301), label = paste("italic(k)==", c(267, 125)), parse = TRUE, hjust = "right", size = 3.5)+
+           annotate("text", y = 1.9, x = (seq(1, 2, 1) + 0.301), label = paste("italic(k)==", c(263, 121)), parse = TRUE, hjust = "right", size = 3.5)+
            annotate("text", y = 2.3, x = (seq(1, 2, 1) + 0.3), label = paste(c("(6)", "(6)")), parse = TRUE, hjust = "right", size = 3.5)
 
-time_mm_dry<-mod_results(full_model_org_units_dry, data = dat, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
+time_mm_dry<-mod_results(full_model_org_units_dry, data = dat_dry, group="Study_ID",at = list(Length_cooking_time_in_s = c(120,600,1500)), by = "Length_cooking_time_in_s")
 p_time_mm_dry<-my_orchard(time_mm_dry, xlab = "lnRR", group="Study_ID", condition.lab  = "Cooking time (sec)", alpha=0.3, trunk.size=8, branch.size = 1.75, twig.size = 0.75, legend.pos="bottom.left", k=F)+
            scale_size_continuous(range = c(1, 10))+
            scale_fill_manual(values=c("#55C667FF"))+
@@ -2919,12 +2908,11 @@ p_time_mm_dry<-my_orchard(time_mm_dry, xlab = "lnRR", group="Study_ID", conditio
            theme(panel.border = element_rect(colour = "black", fill=NA, size=1.3), # border around the plot
                  text = element_text(size = 24), # change font sizes
                  legend.title = element_text(size = 12),
-                 legend.text = element_text(size = 10),
-                 legend.margin=margin(1,1,1,1))+ 
+                 legend.text = element_text(size = 10))+ 
            guides(size=F)+
            ylim(-6.05, 3)+
            annotate("text", y = 1.9, x = 1.3, label = paste("italic(k)==", 47), parse = TRUE, hjust = "right", size = 3.5)+
-           annotate("text", y = 2.3, x = 1.299, label = paste("(3)"), parse = TRUE, hjust = "right", size = 3.5)
+           annotate("text", y = 2.3, x = 1.299, label = paste("(1)"), parse = TRUE, hjust = "right", size = 3.5)
 
 
 p_time_mm_cat<-p_time_mm_wat_oil/p_time_mm_dry + plot_layout(heights=c(2,1))
@@ -3449,8 +3437,8 @@ plot_f <- funnel(full_model,
       legend = TRUE, # display legend
       ylab="Precision (1/SE)", 
       cex.lab=1.75, 
-      digits=1, 
-      ylim=c(0.82,0.94),
+      digits=2, 
+      ylim=c(0.84,1.02),
       xlim=c(-6, 6),
       cex=2,
       pch=21,
@@ -3553,7 +3541,7 @@ ggsave(here("fig/Fig_5BC.png"), width=18, height=7, dpi=1200)
 
 ### Figure 5A 
 
-```{r, fig.width=7, fig.height=9}
+```{r, fig.width=8, fig.height=10}
 dat$Study_ID<- as.factor(dat$Study_ID)
 
 # funnel(full_model, 
@@ -3580,8 +3568,8 @@ plot_f0 <- funnel(full_model0,
       legend = TRUE, # display legend
       ylab="Precision (1/SE)", 
       cex.lab=1.75, 
-      digits=1, 
-      ylim=c(0.82,0.94),
+      digits=2, 
+      ylim=c(0.85,1.05),
       xlim=c(-6, 6),
       cex=2,
       pch=21,
