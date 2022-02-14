@@ -1,0 +1,396 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+--
+title: "Does thermal processing change PFAS concentrations in edible animal products? – A systematic review and meta-analysis"
+author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Matthew Gibson, Daniel Hesselson, G. Gregory Neely, Malgorzata Lagisz, Shinichi Nakagawa "
+date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
+output: rmdformats::material
+editor_options: 
+  chunk_output_type: console
+subtitle: ""
+---
+
+This code is for creating and checking dataset summary data presentd in Figure1 of the manuscript.
+Note that the actual figure was assembled in Adobe illustrator, and as such is not reproduced by this code.
+Also, this file is not intended for knitting, and it was not tested whether it knits.
+
+
+1. Running preprocessing code from meta-analystical analyses (Final_data_analysis.Rmd), before doing summaries fo the data.
+
+# **Packages and custom functions**
+
+```{r setup, include = FALSE}
+# knitr setting
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE, 
+  tidy = TRUE,
+  cache = TRUE, 
+  echo=TRUE
+)
+
+# this needs to be installed from github
+#remotes::install_github("rvlenth/emmeans", dependencies = TRUE, build_opts = "", force=T)  # Note that the installation may not work if the folder is synchronizing with OneDrive
+#devtools::install_github("daniel1noble/orchaRd", force = TRUE, build_vignettes = TRUE)
+#devtools::install_github("daniel1noble/metaAidR")
+```
+
+
+The `lnRR_func` function is here used to calculate a log response ratio (lnRR) adjusted for small sample sizes. In addition, this formula accounts for correlated samples. 
+For more details, see *Doncaster and Spake (2018) Correction for bias in meta-analysis of little-replicated studies. Methods in Ecology and Evolution; 9:634-644*
+
+```{r load packages}
+# packages
+library(tidyverse)
+library(googlesheets4)
+library(here)
+library(metafor) 
+library(metaAidR) # see a note above
+library(orchaRd) # see a note above
+library(ape)
+library(clubSandwich)
+library(metaAidR)
+library(patchwork)
+library(emmeans) # see a note above
+library(kableExtra)
+library(GGally)
+library(cowplot)
+library(grDevices) # reqired for using base and ggplots together
+
+# Below is the custom function to calculate the lnRR 
+lnRR_func <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e){
+  lnRR <- log(Me/Mc) + 
+        0.5 * ((aCV2e/Ne) - (aCV2c/Nc))	
+  lnRR
+  }
+
+# calculating lnRR's sampling variance from independent designs
+var_lnRR_ind <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e){
+  
+  var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) 
+  
+  var_lnRR
+}
+
+# calculating lnRR's sampling variance from dependent designs
+var_lnRR_dep <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
+  var_lnRR <- (aCV2c/Nc) + (aCV2e/Ne) - 
+         2 * rho * ((aCV2c*aCV2e)/sqrt(Nc*Ne)) 
+  
+  var_lnRR
+}
+
+# Mc: Concentration of PFAS of the raw (control) sample
+# Nc: Sample size of the raw (control) sample
+# Me: Concentration of PFAS of the cooked (experimental) sample
+# Ne: Sample size of the cooked (experimental) sample 
+# aCV2c: Mean coefficient of variation of the raw (control) samples
+# aCV2e: Mean coefficient of variation of the cooked (experimental) samples
+
+
+```
+
+# **Data import and processing**
+
+## Import and process raw data 
+
+```{r load data}
+processed_data <- read.csv(here("data", "Rawdata_updated_2.csv")) 
+
+dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
+                                 SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
+
+dat <- dat %>% filter(Species_Scientific != "?") # Remove species without species names
+dat <- dat %>% filter(PFAS_type != "PFOS_Total") # Remove species without species names
+
+
+#### Ratio_liquid_fish with "0" for the dry cooking category
+dat<-dat %>% mutate(Ratio_liquid_fish_0 = ifelse(Cooking_Category =="No liquid", 0, Ratio_liquid_fish)) # Add a 0 when the cooking category is "No liquid", otherwise keep the same value of Ratio_liquid_fish
+
+# taking out data without species information
+
+
+# arrange(select(dat, Cooking_Category, Ratio_liquid_fish, Ratio_liquid_fish_0), Cooking_Category) # Checking everything is fine
+
+dat$Temperature_in_Celsius[dat$Temperature_in_Celsius=="?"] <- NA # Replace "?" by missing values
+dat$Temperature_in_Celsius <- as.numeric(dat$Temperature_in_Celsius) # Convert integer to numeric
+
+dat$Study_ID[dat$Effect_ID=="E557"] # Two effect sizes have the same unique identifier
+dat$Effect_ID[dat$Effect_ID=="E557"&dat$Study_ID=="F013"]<- "E613"
+
+#kable(dat, "html") %>% kable_styling("striped", position = "left") %>% scroll_box(width = "100%", height = "500px")
+```
+
+
+## Calculate effect sizes 
+
+The average coefficient of variation in PFAS concentration was calculated for each study and treatment, according to *Doncaster and Spake (2018) Correction for bias in meta-analysis of little-replicated studies. Methods in Ecology and Evolution; 9:634-644*. 
+Then, these values were averaged across studies and used to calculate the lnRR corrected for small sample sizes (for formula, see the `lnRR_func` above)
+
+```{r calculate effect sizes}
+
+dat$Study_ID <- as.factor(dat$Study_ID)
+dat$SDe <- as.numeric(dat$SDe)
+# Calculate the squared coefficient of variation for control and experimental groups
+aCV2 <- dat %>% 
+               group_by(Study_ID) %>%  # Group by study 
+                    summarise(CV2c = mean((SDc/Mc)^2, na.rm = T),  
+                              CV2e = mean((SDe/Me)^2, na.rm = T)) %>% 
+                              ungroup() %>% # ungroup 
+                              summarise(aCV2c = mean(CV2c, na.rm = T), # Mean CV^2 for exp and control groups across studies
+                              aCV2e = mean(CV2e, na.rm = T)) 
+
+lnRR <-  # Calculate effect sizes
+                    lnRR_func(Mc = dat$Mc, 
+                    Nc = dat$Nc, 
+                    Me = dat$Me, 
+                    Ne = dat$Ne, 
+                    aCV2c = aCV2[[1]], 
+                    aCV2e = aCV2[[2]])
+
+
+
+
+var_lnRR <- ifelse(dat$Design == "Dependent", # Calculate sampling variance
+                    var_lnRR_dep(Mc = dat$Mc, 
+                    Nc = dat$Nc, 
+                    Me = dat$Me, 
+                    Ne = dat$Ne, 
+                    aCV2c = aCV2[[1]], 
+                    aCV2e = aCV2[[2]],
+                    rho = 0.5), 
+                    var_lnRR_ind(Mc = dat$Mc, 
+                    Nc = dat$Nc, 
+                    Me = dat$Me, 
+                    Ne = dat$Ne, 
+                    aCV2c = aCV2[[1]], 
+                    aCV2e = aCV2[[2]])) 
+
+
+
+dat <- dat %>% 
+             mutate(N_tilde = (Nc*Ne)/(Nc + Ne)) # getting effective sample size 
+
+dat <- cbind(dat, lnRR, var_lnRR) # Merge effect sizes with the data frame
+
+VCV_lnRR <- make_VCV_matrix(dat, V = "var_lnRR", cluster = "Cohort_ID", obs = "Effect_ID", rho = 0.5) # Because some effect sizes share the same control, we generated a variance-covariance matrix to account for correlated errors (i.e. effectively dividing the weight of the correlated estimates by half)
+
+```
+
+## Distribution of effect sizes 
+
+```{r ES distributions, fig.height=8, fig.width=15}
+# mean 
+ggplot(dat, aes(x=lnRR))+ geom_histogram(fill = "salmon", col = "black", binwidth = 0.2) + theme_classic()
+
+# variance
+ggplot(dat, aes(x=var_lnRR))+ geom_histogram(fill = "salmon", col = "black", binwidth = 0.05) + theme_classic()
+
+# log variance
+ggplot(dat, aes(x=var_lnRR))+ geom_histogram(fill = "salmon", col = "black", binwidth = 0.05) + scale_x_log10()+theme_classic()
+
+```
+
+
+# **Sample sizes**
+
+## Table of sample sizes 
+
+```{r sample sizes table}
+dat %>%
+       summarise( # Calculate the number of effect sizes, studies and species for the main categorical variables
+                 `Studies` = n_distinct(Study_ID),
+                 `Species` = n_distinct(Species_common),
+                 `PFAS type` = n_distinct(PFAS_type),
+                 `Cohorts` = n_distinct(Cohort_ID),
+                 `Effect sizes` = n_distinct(Effect_ID),
+    
+                 `Effect sizes (Oil-based)` = n_distinct(Effect_ID[Cooking_Category=="oil-based"]),
+                 `Studies (Oil-based)` = n_distinct(Study_ID[Cooking_Category=="oil-based"]),
+                 `Species (Oil-based)` = n_distinct(Species_common[Cooking_Category=="oil-based"]),
+
+                 `Effect sizes (Water-based)` = n_distinct(Effect_ID[Cooking_Category=="water-based"]),
+                 `Studies (Water-based)` = n_distinct(Study_ID[Cooking_Category=="water-based"]),
+                 `Species (Water-based)` = n_distinct(Species_common[Cooking_Category=="water-based"]),
+
+                 `Effect sizes (No liquid)` = n_distinct(Effect_ID[Cooking_Category=="No liquid"]),
+                 `Studies (No liquid)` = n_distinct(Study_ID[Cooking_Category=="No liquid"]),
+                 `Species (No liquid)` = n_distinct(Species_common[Cooking_Category=="No liquid"]),) -> table_sample_sizes
+
+table_sample_sizes<-t(table_sample_sizes)
+colnames(table_sample_sizes)<-"n (sample size)"
+kable(table_sample_sizes) %>% kable_styling("striped", position="left")
+```
+
+## Summary of the dataset 
+
+```{r simple summary}
+kable(summary(dat), "html") %>% kable_styling("striped", position = "left") %>% 
+    scroll_box(width = "100%", height = "500px")
+```
+
+2. Actual data summaries for Figure 1
+
+```{r distinc data, echo=FALSE}
+
+dat %>% distinct(Study_ID)
+
+dat %>% distinct(Country_firstAuthor)
+
+dat %>% distinct(PFAS_type)
+
+dat %>% distinct(PFAS_carbon_chain)
+
+dat %>% distinct(Cooking_method)
+
+dat %>% distinct(Cooking_Category)
+
+dat %>% distinct(Oil_type)
+
+dat %>% distinct(Unit_PFAS_conc)
+
+dat %>% distinct(Effect_ID)
+
+dat %>% distinct(Cohort_ID)
+
+dat %>% distinct(Sc_technical_biological)
+
+dat %>% distinct(Se_technical_biological)
+
+dat %>% distinct(Unit_LOD_LOQ)
+
+dat %>% distinct(Raw_data_provided)
+
+dat %>% distinct(Invertebrate_vertebrate)
+
+dat %>% distinct(Fish_mollusc)
+
+dat %>% distinct(Moisture_loss_in_percent)
+
+dat %>% distinct(Species_Scientific)
+
+```
+
+
+
+###Check content of individual studies
+```{r ES by study, echo=FALSE}
+
+#Alves_2017
+Alves_2017 <- dat %>% filter (Study_ID == "F001")
+dim(table(Alves_2017$PFAS_type))
+dim(table(Alves_2017$Species_Scientific))
+dim(table(Alves_2017$Cooking_Category))
+dim(table(Alves_2017$Effect_ID))
+
+#Barbosa_2018
+Barbosa_2018 <- dat %>% filter (Study_ID == "F002")
+dim(table(Barbosa_2018$PFAS_type))
+dim(table(Barbosa_2018$Species_Scientific))
+dim(table(Barbosa_2018$Cooking_Category))
+dim(table(Barbosa_2018$Effect_ID))
+
+#Bhavsar_2014
+Bhavsar_2014 <- dat %>% filter (Study_ID == "F003")
+dim(table(Bhavsar_2014$PFAS_type))
+dim(table(Bhavsar_2014$Species_Scientific))
+dim(table(Bhavsar_2014$Cooking_Category))
+dim(table(Bhavsar_2014$Effect_ID))
+
+#DelGobbo_2008
+DelGobbo_2008 <- dat %>% filter (Study_ID == "F005")
+dim(table(DelGobbo_2008$PFAS_type))
+dim(table(DelGobbo_2008$Species_Scientific))
+dim(table(DelGobbo_2008$Cooking_Category))
+dim(table(DelGobbo_2008$Effect_ID))
+
+#Hu_2020
+Hu_2020 <- dat %>% filter (Study_ID == "F006")
+dim(table(Hu_2020$PFAS_type))
+dim(table(Hu_2020$Species_Scientific))
+dim(table(Hu_2020$Cooking_Category))
+dim(table(Hu_2020$Effect_ID))
+
+#Kim_2020
+Kim_2020 <- dat %>% filter (Study_ID == "F007")
+dim(table(Kim_2020$PFAS_type))
+dim(table(Kim_2020$Species_Scientific))
+dim(table(Kim_2020$Cooking_Category))
+dim(table(Kim_2020$Effect_ID))
+
+#Luo_2019
+Luo_2019 <- dat %>% filter (Study_ID == "F008")
+dim(table(Luo_2019$PFAS_type))
+dim(table(Luo_2019$Species_Scientific))
+dim(table(Luo_2019$Cooking_Category))
+dim(table(Luo_2019$Effect_ID))
+
+#Sungur_2019
+Sungur_2019 <- dat %>% filter (Study_ID == "F010")
+dim(table(Sungur_2019$PFAS_type))
+dim(table(Sungur_2019$Species_Scientific))
+dim(table(Sungur_2019$Cooking_Category))
+dim(table(Sungur_2019$Effect_ID))
+
+#Taylor_2019
+Taylor_2019 <- dat %>% filter (Study_ID == "F011")
+dim(table(Taylor_2019$PFAS_type))
+dim(table(Taylor_2019$Species_Scientific))
+dim(table(Taylor_2019$Cooking_Category))
+dim(table(Taylor_2019$Effect_ID))
+
+#Vassiliadou_2015
+Vassiliadou_2015 <- dat %>% filter (Study_ID == "F013")
+dim(table(Vassiliadou_2015$PFAS_type))
+dim(table(Vassiliadou_2015$Species_Scientific))
+dim(table(Vassiliadou_2015$Cooking_Category))
+dim(table(Vassiliadou_2015$Effect_ID))
+
+```
+
+```{r summarise variables, echo=FALSE}
+names(dat)
+
+#some simple descriptive plots and tables
+hist(dat$Publication_year)
+hist(dat$Mc, breaks=20)
+hist(dat$Me, breaks=20)
+
+table(dat$PFAS_type)
+
+table(dat$PFAS_carbon_chain)
+mean(dat$PFAS_carbon_chain, na.rm = TRUE)
+range(dat$PFAS_carbon_chain, na.rm = TRUE)
+
+mean(dat$Length_cooking_time_in_s, na.rm = TRUE)
+range(dat$Length_cooking_time_in_s, na.rm = TRUE)
+
+mean(dat$Temperature_in_Celsius, na.rm = TRUE)
+range(dat$Temperature_in_Celsius, na.rm = TRUE)
+
+mean(dat$Ratio_liquid_fish_0, na.rm = TRUE)
+range(dat$Ratio_liquid_fish_0, na.rm = TRUE)
+
+table(dat$Species_common)
+table(dat$Species_Scientific)
+table(dat$Invertebrate_vertebrate)
+table(dat$Fish_mollusc)
+table(dat$Pooled_Nc)
+#table(dat$"Se/sd") #570 SD and 40 NA
+
+#checking for missing values
+table(is.na(dat$Mc)) #0 missing values
+table(is.na(dat$Me)) #0 missing values
+table(is.na(dat$Sc)) #53 missing values
+table(is.na(dat$Se)) #29 missing values
+table(is.na(dat$Nc)) #0 missing values
+table(is.na(dat$Ne)) #0 missing values
+table(is.na(dat$PFAS_carbon_chain)) #0 missing values
+table(is.na(dat$Temperature_in_Celsius)) #6 missing values: Kim_2020 didn't provide temperature for grilling
+table(is.na(dat$Length_cooking_time_in_s)) #56 missing values: Vassiliadou_2015 didn't provide temperature 
+table(is.na(dat$Ratio_liquid_fish_0)) #19 missing values: No data for Alves_2017, Barbosa_2018,  etc.
+table(is.na(dat$Volume_liquid_ml)) #114 missing values: No data for Alves_2017, Barbosa_2018,  etc.
+```
