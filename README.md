@@ -16,7 +16,6 @@ Catharina Vendl1*, Patrice Pottier1, Matthew D. Taylor1, 2, 3, Jennifer Braeunig
 # Contents of the repository:   
 - "R" folder:    
   - Final_data_analysis.Rmd: R markdown file with code for final data analysis.  
-  - First_data_exploration.Rmd: R markdown file with code for preliminary data exploration.  
   - formulas.Rmd: R code including formulas to calculate effect sizes.  
   - formulas.docx: word document version of Rmd file including formulas to calculate effect sizes.  
   - load_pilot_data.Rmd: R markdown file with code for preliminary check of pilot data.  
