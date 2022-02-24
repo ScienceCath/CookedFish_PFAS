@@ -4,12 +4,10 @@ author: "Catharina Vendl, Patrice Pottier, Matthew Taylor, Jennifer Braeunig, Ma
 date: "latest update: `r format(Sys.time(), '%d %B %Y')`"
 output: 
   rmdformats::material:
-  code_folding: hide
-  code_download: true
-  toc_depth: 4
+    code_folding: hide
+    code_download: true
 editor_options: 
   chunk_output_type: console
-subtitle: ""
 ---
 # **Packages and custom functions**
 
