@@ -87,7 +87,7 @@ var_lnRR_dep <- function(Mc, Nc, Me, Ne, aCV2c, aCV2e, rho = 0.5){
 ## Import and process raw data 
 
 ```{r}
-processed_data <- read.csv(here("data", "Rawdata_updated_2.csv")) 
+processed_data <- read.csv(here("data", "Raw_data.csv")) 
 
 dat <- processed_data %>% mutate(SDc = ifelse(Sc_technical_biological == "biological", Sc, NA), # Calculate the SD of biological replicates for control samples
                                  SDe = ifelse(Se_technical_biological == "biological", Se, NA)) # Calculate the SD of biological replicates for experimental samples
