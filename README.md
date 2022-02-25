@@ -25,7 +25,7 @@ Catharina Vendl1*, Patrice Pottier1, Matthew D. Taylor1, 2, 3, Jennifer Braeunig
 
 - "data" folder:   
   - Metadata_CookedFish.docx: word document of meta-data file of data extraction sheet.  #change to .txt or .csv file
-  - Rawdata.csv: csv data file with raw data (data extracted from included studies).  
+  - Raw_data.csv: csv data file with raw data (data extracted from included studies).  
   - phylogenetic_tree.tre: phylogenetic tree used in the analyses
   
 - "fig" folder:   
